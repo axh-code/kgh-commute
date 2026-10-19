@@ -124,12 +124,11 @@
   .train-cell.next .kick { color: var(--shu); }
   .num.leaving { font-size: 22px; color: var(--shu); }
 
-  .cstatus { display: flex; align-items: center; gap: 10px; margin-top: 6px; min-height: 40px; }
-  .csq { width: 30px; height: 30px; flex: none; }
+  .cstatus { margin-top: 6px; }
+  .csq { display: block; width: var(--fs-num); height: var(--fs-num); }
   .csq.go { background: var(--live); }
   .csq.soon { background: var(--warn); }
   .csq.wait { background: var(--stop); }
-  .cword { font-size: var(--fs-sub); color: var(--muted); }
 
   .controls { max-width: 432px; width: 100%; display: flex; align-items: center; gap: 10px; }
   .status { display: inline-flex; align-items: center; gap: 7px; font-size: var(--fs-sub); color: var(--ink); background: var(--paper); border: 1px solid #b79a6a; padding: 7px 10px; }
@@ -384,11 +383,11 @@
       var h=arr.getHours(), m=arr.getMinutes(), ap=h>=12?"pm":"am", h12=((h+11)%12)+1;
       ea.innerHTML = h12+":"+pad2(m)+'<span class="unit">'+ap+'</span>';
     } else { el.textContent="–"; ea.textContent="–"; }
-    var cls, word;
-    if(cRainy || cEbikes==null || cEbikes===0){ cls="wait"; word="Wait"; }
-    else if(cEbikes<=2){ cls="soon"; word="Soon"; }
-    else { cls="go"; word="Go"; }
-    es.innerHTML = '<span class="csq '+cls+'"></span><span class="cword">'+word+'</span>';
+    var cls;
+    if(cRainy || cEbikes==null || cEbikes===0){ cls="wait"; }
+    else if(cEbikes<=2){ cls="soon"; }
+    else { cls="go"; }
+    es.innerHTML = '<span class="csq '+cls+'"></span>';
   }
 
   /* ---- orchestration ---- */
