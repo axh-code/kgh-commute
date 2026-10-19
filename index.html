@@ -5,27 +5,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="SF commute board in a shoji frame: live trains, bikes, and the day's weather as the sky.">
 <meta name="color-scheme" content="light">
-<meta name="theme-color" content="#a9794e">
+<meta name="theme-color" content="#9d6e40">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <style>html,body{height:100%}body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0);padding-bottom:env(safe-area-inset-bottom,0)}</style>
 <title>Bikes &amp; BART</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Zen+Old+Mincho:wght@500;600&display=swap">
 <style>
-  /* A shoji-screen panel floating in the day's sky. Single light world; the weather sets the background. */
+  /* A shoji panel of real timber grain, floating in the day's living sky. */
   :root {
-    --wood:   #a9794e;   /* cedar frame */
-    --wood-d: #7c5733;   /* joinery shadow */
-    --paper:  rgba(252, 249, 242, 0.82);  /* translucent washi — sky glows through */
-    --paper-solid: #f7f2e8;
-    --ink:    #2c2721;   /* sumi */
+    --paper:  #f3eee1;   /* washi, near-opaque so it stays calm */
+    --paper-2:#ece5d4;
+    --ink:    #2b2620;
     --muted:  #756a5a;
-    --hair:   #d8cdb8;
     --shu:    #bf4a2f;   /* vermilion — the Red Line / torii */
     --ebike:  #be7a2c;   /* kaki amber */
     --reg:    #3f5d6b;   /* ai indigo-slate */
     --live:   #5c8a53;
     --snap:   #b0863a;
+    --puff:   rgba(255,255,255,.55);
+    --bloom:  rgba(255,255,255,.35);
     --sans: "Zen Kaku Gothic New", system-ui, -apple-system, sans-serif;
     --serif: "Zen Old Mincho", Georgia, "Times New Roman", serif;
     color-scheme: light;
@@ -33,61 +32,64 @@
 
   * { box-sizing: border-box; }
   html, body { height: 100%; }
-  body { margin: 0; font-family: var(--sans); color: var(--ink); background: #b9c0c2; -webkit-font-smoothing: antialiased; }
+  body { margin: 0; font-family: var(--sans); color: var(--ink); background: #aeb9bf; -webkit-font-smoothing: antialiased; }
 
-  /* ---- sky layers (fixed, behind everything) ---- */
-  .sky, .sun, .clouds, #wxcanvas { position: fixed; inset: 0; pointer-events: none; }
-  .sky { z-index: 0; transition: background 1.2s ease; background: linear-gradient(180deg, #aeb7ba 0%, #c9cfcd 55%, #bcc1be 100%); }
-  .sun { z-index: 1; opacity: 0; transition: opacity 1.2s ease; background: radial-gradient(circle at 78% 20%, rgba(255,242,212,.95), rgba(255,242,212,0) 40%); }
-  .clouds { z-index: 1; opacity: 0; transition: opacity 1.2s ease; overflow: hidden; }
-  .cloud { position: absolute; background: radial-gradient(ellipse at center, rgba(255,255,255,.8), rgba(255,255,255,0) 70%); filter: blur(6px); will-change: transform; }
-  .c1 { width: 46vmax; height: 20vmax; top: 10%; left: -30%; animation: drift 90s linear infinite; }
-  .c2 { width: 60vmax; height: 24vmax; top: 24%; left: -40%; opacity: .8; animation: drift 130s linear infinite; animation-delay: -40s; }
-  .c3 { width: 38vmax; height: 16vmax; top: 44%; left: -25%; opacity: .7; animation: drift 110s linear infinite; animation-delay: -80s; }
-  @keyframes drift { to { transform: translateX(165vw); } }
+  /* ---------- sky ---------- */
+  .sky, .bloom, .atmos, #wxcanvas { position: fixed; inset: 0; pointer-events: none; }
+  .sky   { z-index: 0; transition: background 1.4s ease; background: linear-gradient(180deg,#9fb4c2 0%,#c2cdd2 50%,#d4d2c9 100%); }
+  .bloom { z-index: 1; transition: background 1.4s ease; background: radial-gradient(60vmax circle at 72% 16%, var(--bloom), transparent 62%); }
+  .atmos { z-index: 1; overflow: hidden; }
+  .puff  { position: absolute; border-radius: 50%; background: radial-gradient(closest-side, var(--puff), transparent 72%); will-change: transform; }
+  .p1 { width: 62vmax; height: 40vmax; top: 6%;  left: -35%; animation: drift1 150s linear infinite; }
+  .p2 { width: 78vmax; height: 48vmax; top: 30%; left: -50%; animation: drift1 220s linear infinite; animation-delay: -70s; opacity: .85; }
+  .p3 { width: 50vmax; height: 34vmax; top: 54%; left: -30%; animation: drift1 185s linear infinite; animation-delay: -120s; opacity: .7; }
+  .p4 { width: 40vmax; height: 28vmax; top: 72%; left: -25%; animation: drift1 260s linear infinite; animation-delay: -40s; opacity: .6; }
+  @keyframes drift1 { to { transform: translateX(175vw); } }
   #wxcanvas { z-index: 2; }
 
-  body[data-sky="clear"]  .sky { background: linear-gradient(180deg, #79abd6 0%, #b6d4e5 48%, #ecdcc0 100%); }
-  body[data-sky="clear"]  .sun,
-  body[data-sky="partly"] .sun { opacity: 1; }
-  body[data-sky="partly"] .sky { background: linear-gradient(180deg, #8dbadf 0%, #c4d6df 55%, #dadcd5 100%); }
-  body[data-sky="partly"] .clouds,
-  body[data-sky="cloudy"] .clouds,
-  body[data-sky="fog"]    .clouds { opacity: 1; }
-  body[data-sky="cloudy"] .sky { background: linear-gradient(180deg, #a9b2b5 0%, #c7cdca 55%, #b9bebb 100%); }
-  body[data-sky="fog"]    .sky { background: linear-gradient(180deg, #c0c5c3 0%, #d6d8d3 60%, #c6cac4 100%); }
-  body[data-sky="rain"]   .sky { background: linear-gradient(180deg, #5f6d75 0%, #7d898d 55%, #8d9593 100%); }
-  body[data-sky="storm"]  .sky { background: linear-gradient(180deg, #454e55 0%, #636b6e 55%, #6e7572 100%); }
-  body[data-sky="snow"]   .sky { background: linear-gradient(180deg, #c2ccd1 0%, #dfe3e2 60%, #ced2cf 100%); }
+  body[data-sky="clear"]  .sky { background: linear-gradient(180deg,#5aa3df 0%,#9ec9e8 42%,#ecdfc5 100%); }
+  body[data-sky="clear"]  { --puff: rgba(255,252,244,.5); --bloom: rgba(255,246,222,.55); }
+  body[data-sky="partly"] .sky { background: linear-gradient(180deg,#74b0df 0%,#bdd7e7 55%,#dcdcd3 100%); }
+  body[data-sky="partly"] { --puff: rgba(255,255,255,.72); --bloom: rgba(255,248,230,.4); }
+  body[data-sky="cloudy"] .sky { background: linear-gradient(180deg,#9cb2c1 0%,#c3ced3 50%,#d6d3ca 100%); }
+  body[data-sky="cloudy"] { --puff: rgba(255,255,255,.62); --bloom: rgba(255,255,255,.4); }
+  body[data-sky="fog"]    .sky { background: linear-gradient(180deg,#c0c7c7 0%,#d9dbd6 55%,#cdccc3 100%); }
+  body[data-sky="fog"]    { --puff: rgba(255,255,255,.55); --bloom: rgba(255,255,255,.5); }
+  body[data-sky="rain"]   .sky { background: linear-gradient(180deg,#54626b 0%,#78868c 55%,#939698 100%); }
+  body[data-sky="rain"]   { --puff: rgba(214,221,224,.4); --bloom: rgba(220,228,230,.18); }
+  body[data-sky="storm"]  .sky { background: linear-gradient(180deg,#3d464d 0%,#5a6266 55%,#6e6f6d 100%); }
+  body[data-sky="storm"]  { --puff: rgba(190,198,201,.34); --bloom: rgba(200,208,210,.14); }
+  body[data-sky="snow"]   .sky { background: linear-gradient(180deg,#bbc7cf 0%,#dde3e4 55%,#ced1ce 100%); }
+  body[data-sky="snow"]   { --puff: rgba(255,255,255,.7); --bloom: rgba(255,255,255,.5); }
 
-  @media (prefers-reduced-motion: reduce) { .cloud { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { .puff { animation: none; } }
 
-  /* ---- scene ---- */
+  /* ---------- scene ---------- */
   .scene {
     position: relative; z-index: 3; min-height: 100%;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 14px;
     padding-left: max(18px, env(safe-area-inset-left, 0px));
     padding-right: max(18px, env(safe-area-inset-right, 0px));
-    padding-block: 40px;
+    padding-block: 42px;
   }
-  .banner { max-width: 440px; width: 100%; background: var(--paper-solid); border: 1px solid var(--wood-d); border-left: 4px solid var(--snap); padding: 10px 13px; font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+  .banner { max-width: 432px; width: 100%; background: var(--paper); border: 1px solid #b79a6a; border-left: 4px solid var(--snap); padding: 10px 13px; font-size: 12.5px; color: var(--muted); line-height: 1.5; box-shadow: 0 8px 24px -12px rgba(30,20,10,.5); }
   .banner b { color: var(--ink); }
   .banner[hidden] { display: none; }
 
-  /* ---- shoji frame ---- */
+  /* ---------- timber frame ---------- */
   .frame {
-    width: 100%; max-width: 440px;
-    background: var(--paper);
-    -webkit-backdrop-filter: blur(9px) saturate(1.08);
-    backdrop-filter: blur(9px) saturate(1.08);
-    border: 11px solid var(--wood);
-    box-shadow: inset 0 0 0 1px var(--wood-d), 0 26px 52px -20px rgba(34,24,12,.55);
-    display: flex; flex-direction: column;
+    position: relative; width: 100%; max-width: 432px; padding: 14px;
+    box-shadow:
+      inset 1.5px 1.5px 2px rgba(255,236,205,.4),
+      inset -2px -2px 4px rgba(54,34,15,.45),
+      inset 0 0 0 1px rgba(54,34,15,.3),
+      0 28px 55px -22px rgba(28,18,8,.6);
   }
+  .wood { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; display: block; }
+  .panel { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 5px; }
   .pane { display: flex; flex-direction: column; }
-  .pane + .pane { border-top: 5px solid var(--wood); }
-  .pane-head { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; padding: 12px 14px 9px; }
+  .pane-head { background: var(--paper); padding: 12px 15px 8px; display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
   .pane-title { font-family: var(--serif); font-weight: 600; font-size: 16px; letter-spacing: .01em; }
   .pane-sub { font-size: 11px; color: var(--muted); letter-spacing: .02em; }
   .mark { width: 9px; height: 9px; flex: none; align-self: center; }
@@ -95,45 +97,40 @@
   .mark.ebike { background: var(--ebike); }
   .mark.reg { background: var(--reg); }
 
-  .cells { display: grid; }
+  .cells { display: grid; gap: 5px; }
   .c2 { grid-template-columns: 1fr 1fr; }
   .c3 { grid-template-columns: 1fr 1fr 1fr; }
-  .cell { padding: 12px 14px 15px; min-width: 0; }
-  .cell + .cell { border-left: 5px solid var(--wood); }
+  .cell { background: var(--paper); padding: 11px 15px 15px; min-width: 0; min-height: 92px; }
 
-  /* weather cell */
   .wx-when { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
-  .wx-row { display: flex; align-items: center; gap: 9px; margin-top: 5px; }
+  .wx-row { display: flex; align-items: center; gap: 9px; margin-top: 6px; }
   .wx-ico { width: 30px; height: 30px; flex: none; display: block; }
   .wx-ico svg { width: 100%; height: 100%; display: block; }
   .wx-temp { font-size: 34px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
-  .wx-desc { font-size: 12.5px; color: var(--muted); margin-top: 5px; }
+  .wx-desc { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
 
-  /* train cell */
   .train-cell { position: relative; }
   .train-cell.next { box-shadow: inset 0 4px 0 var(--shu); }
   .t-rank { font-size: 10px; letter-spacing: .13em; text-transform: uppercase; color: var(--muted); }
   .train-cell.next .t-rank { color: var(--shu); }
-  .t-min { font-size: 38px; font-weight: 700; line-height: .95; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .t-min { font-size: 38px; font-weight: 700; line-height: .95; margin-top: 6px; font-variant-numeric: tabular-nums; }
   .t-min.leaving { font-size: 22px; color: var(--shu); }
   .t-unit { font-size: 12px; font-weight: 400; color: var(--muted); margin-left: 2px; }
-  .t-meta { font-size: 10.5px; color: var(--muted); margin-top: 4px; min-height: 1em; }
+  .t-meta { font-size: 10.5px; color: var(--muted); margin-top: 5px; min-height: 1em; }
   .t-meta .late { color: var(--shu); }
   .t-empty { font-size: 12.5px; color: var(--muted); line-height: 1.5; margin-top: 4px; }
 
-  /* bike cell */
   .k { font-size: 11px; letter-spacing: .05em; color: var(--muted); display: inline-flex; align-items: center; gap: 7px; }
-  .num { font-size: 52px; font-weight: 700; line-height: .9; margin-top: 7px; font-variant-numeric: tabular-nums; }
+  .num { font-size: 52px; font-weight: 700; line-height: .9; margin-top: 8px; font-variant-numeric: tabular-nums; }
 
-  /* controls */
-  .controls { max-width: 440px; width: 100%; display: flex; align-items: center; gap: 10px; }
-  .status { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--ink); background: var(--paper-solid); border: 1px solid var(--wood-d); padding: 7px 10px; }
+  .controls { max-width: 432px; width: 100%; display: flex; align-items: center; gap: 10px; }
+  .status { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--ink); background: var(--paper); border: 1px solid #b79a6a; padding: 7px 10px; }
   .status .sq { width: 8px; height: 8px; background: var(--live); flex: none; }
   .status .sq.snap { background: var(--snap); }
   .status .sq.err { background: var(--shu); }
   .grow { flex: 1; }
-  .btn { font-family: var(--sans); font-size: 13px; font-weight: 500; color: var(--ink); background: var(--paper-solid); border: 1px solid var(--wood-d); padding: 7px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; text-decoration: none; }
-  .btn:hover { background: #fff; }
+  .btn { font-family: var(--sans); font-size: 13px; font-weight: 500; color: var(--ink); background: var(--paper); border: 1px solid #b79a6a; padding: 7px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; text-decoration: none; }
+  .btn:hover { background: #fbf7ee; }
   .btn:active { transform: translateY(1px); }
   .btn:focus-visible { outline: 2px solid var(--shu); outline-offset: 2px; }
   .btn svg { width: 14px; height: 14px; }
@@ -143,8 +140,8 @@
 </head>
 <body>
 <div class="sky"></div>
-<div class="sun" id="sun"></div>
-<div class="clouds" id="clouds"><span class="cloud c1"></span><span class="cloud c2"></span><span class="cloud c3"></span></div>
+<div class="bloom"></div>
+<div class="atmos"><span class="puff p1"></span><span class="puff p2"></span><span class="puff p3"></span><span class="puff p4"></span></div>
 <canvas id="wxcanvas"></canvas>
 
 <div class="scene">
@@ -153,30 +150,48 @@
   </div>
 
   <main class="frame">
-    <section class="pane">
-      <div class="pane-head"><span class="pane-title">San Francisco</span><span class="pane-sub">today · worst of 7a &amp; 4p</span></div>
-      <div class="cells c2">
-        <div class="cell" id="wx0"></div>
-        <div class="cell" id="wx1"></div>
-      </div>
-    </section>
+    <svg class="wood" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" viewBox="0 0 300 150" aria-hidden="true">
+      <defs>
+        <filter id="grain" x="0" y="0" width="100%" height="100%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.013 0.1" numOctaves="4" seed="8" stitchTiles="stitch"/>
+          <feColorMatrix type="matrix" values="0 0 0 0 0.37  0 0 0 0 0.25  0 0 0 0 0.13  0.72 0 0 0 0"/>
+        </filter>
+        <filter id="grain2" x="0" y="0" width="100%" height="100%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.02 0.14" numOctaves="3" seed="21" stitchTiles="stitch"/>
+          <feColorMatrix type="matrix" values="0 0 0 0 0.86  0 0 0 0 0.66  0 0 0 0 0.42  0.3 0 0 0 0"/>
+        </filter>
+      </defs>
+      <rect width="300" height="150" fill="#9d6e40"/>
+      <rect width="300" height="150" filter="url(#grain2)"/>
+      <rect width="300" height="150" filter="url(#grain)"/>
+    </svg>
 
-    <section class="pane">
-      <div class="pane-head"><span class="mark shu"></span><span class="pane-title">Red Line · Eastbound</span><span class="pane-sub">Montgomery → Richmond</span></div>
-      <div class="cells c3" id="trains"></div>
-    </section>
+    <div class="panel">
+      <section class="pane">
+        <div class="pane-head"><span class="pane-title">San Francisco</span><span class="pane-sub">today · worst of 7a &amp; 4p</span></div>
+        <div class="cells c2">
+          <div class="cell" id="wx0"></div>
+          <div class="cell" id="wx1"></div>
+        </div>
+      </section>
 
-    <section class="pane">
-      <div class="pane-head"><span class="pane-title">18th Ave at California</span><span class="pane-sub">Bay Wheels</span></div>
-      <div class="cells c2">
-        <div class="cell"><div class="k"><span class="mark ebike"></span>E-bikes</div><div class="num" id="ebikeBig">–</div></div>
-        <div class="cell"><div class="k"><span class="mark reg"></span>Regular</div><div class="num" id="classicBig">–</div></div>
-      </div>
-    </section>
+      <section class="pane">
+        <div class="pane-head"><span class="mark shu"></span><span class="pane-title">Red Line · Eastbound</span><span class="pane-sub">Montgomery → Richmond</span></div>
+        <div class="cells c3" id="trains"></div>
+      </section>
+
+      <section class="pane">
+        <div class="pane-head"><span class="pane-title">18th Ave at California</span><span class="pane-sub">Bay Wheels</span></div>
+        <div class="cells c2">
+          <div class="cell"><div class="k"><span class="mark ebike"></span>E-bikes</div><div class="num" id="ebikeBig">–</div></div>
+          <div class="cell"><div class="k"><span class="mark reg"></span>Regular</div><div class="num" id="classicBig">–</div></div>
+        </div>
+      </section>
+    </div>
   </main>
 
   <div class="controls">
-    <span class="status"><span class="sq" id="statusSq"></span><span id="statusText">live</span></span>
+    <span class="status"><span class="sq" id="statusSq"></span><span id="statusText">loading…</span></span>
     <span class="grow"></span>
     <a class="btn" href="https://maps.google.com/?q=37.785111,-122.477667" target="_blank" rel="noopener">Dock in Maps</a>
     <button class="btn" id="refreshBtn" aria-label="Refresh now">
@@ -231,7 +246,7 @@
   var WX_TINT = { clear:"#c6974a", partly:"#c6974a", cloudy:"var(--muted)", fog:"var(--muted)", rain:"var(--reg)", snow:"var(--reg)", storm:"#8a6d3a" };
   var WX_WHEN = ["7 AM", "4 PM"];
 
-  function renderWeather(slots, source){
+  function renderWeather(slots){
     var worst = null;
     slots.forEach(function(s,i){
       var info = wxInfo(s.code);
@@ -253,48 +268,44 @@
           for(var i=0;i<t.length;i++){ if(t[i].slice(11,16)===hh){ slots.push({temp:h.temperature_2m[i], code:h.weather_code[i], precip:h.precipitation_probability?h.precipitation_probability[i]:null}); break; } }
         });
         if(slots.length<2) throw new Error("hours");
-        renderWeather(slots,"live"); return true;
+        renderWeather(slots); return true;
       });
   }
 
-  /* ---- sky + weather motion ---- */
+  /* ---- sky motion (rain / snow / clear motes; clouds are CSS) ---- */
   var canvas, ctx, W, H, DPR, mode="none", parts=[], raf=null;
   var reduced = (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
   function sizeCanvas(){ DPR=Math.min(window.devicePixelRatio||1,2); W=canvas.width=Math.floor(innerWidth*DPR); H=canvas.height=Math.floor(innerHeight*DPR); canvas.style.width=innerWidth+"px"; canvas.style.height=innerHeight+"px"; }
   function seed(){
     parts=[]; var n=0, i;
-    if(mode==="rain"||mode==="storm"){ n = mode==="storm"?220:130; for(i=0;i<n;i++) parts.push({x:Math.random()*W,y:Math.random()*H,l:(10+Math.random()*14)*DPR,s:(6+Math.random()*5)*DPR}); }
-    else if(mode==="snow"){ n=80; for(i=0;i<n;i++) parts.push({x:Math.random()*W,y:Math.random()*H,r:(1.2+Math.random()*1.8)*DPR,s:(.6+Math.random()*1)*DPR,drift:Math.random()*Math.PI*2}); }
-    else if(mode==="clear"){ n=16; for(i=0;i<n;i++) parts.push({x:Math.random()*W,y:Math.random()*H,r:(1+Math.random()*1.6)*DPR,s:(.15+Math.random()*.3)*DPR,drift:Math.random()*Math.PI*2}); }
+    if(mode==="rain"||mode==="storm"){ n = mode==="storm"?230:140; for(i=0;i<n;i++) parts.push({x:Math.random()*W,y:Math.random()*H,l:(10+Math.random()*16)*DPR,s:(6+Math.random()*5)*DPR}); }
+    else if(mode==="snow"){ n=85; for(i=0;i<n;i++) parts.push({x:Math.random()*W,y:Math.random()*H,r:(1.2+Math.random()*2)*DPR,s:(.5+Math.random()*1)*DPR,d:Math.random()*6.3}); }
+    else if(mode==="clear"){ n=14; for(i=0;i<n;i++) parts.push({x:Math.random()*W,y:Math.random()*H,r:(1+Math.random()*1.6)*DPR,s:(.12+Math.random()*.25)*DPR,d:Math.random()*6.3}); }
   }
   function frame(){
-    ctx.clearRect(0,0,W,H);
-    var i,p;
+    ctx.clearRect(0,0,W,H); var i,p;
     if(mode==="rain"||mode==="storm"){
-      ctx.strokeStyle="rgba(228,236,238,.34)"; ctx.lineWidth=DPR;
-      for(i=0;i<parts.length;i++){ p=parts[i]; ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(p.x+p.l*.28,p.y+p.l); ctx.stroke(); p.y+=p.s; p.x+=p.s*.28; if(p.y>H){ p.y=-p.l; p.x=Math.random()*W; } }
+      ctx.strokeStyle="rgba(228,236,238,.32)"; ctx.lineWidth=DPR;
+      for(i=0;i<parts.length;i++){ p=parts[i]; ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(p.x+p.l*.26,p.y+p.l); ctx.stroke(); p.y+=p.s; p.x+=p.s*.26; if(p.y>H){ p.y=-p.l; p.x=Math.random()*W; } }
     } else if(mode==="snow"){
       ctx.fillStyle="rgba(255,255,255,.85)";
-      for(i=0;i<parts.length;i++){ p=parts[i]; p.drift+=.01; ctx.beginPath(); ctx.arc(p.x+Math.sin(p.drift)*6*DPR,p.y,p.r,0,6.3); ctx.fill(); p.y+=p.s; if(p.y>H){ p.y=-4*DPR; p.x=Math.random()*W; } }
+      for(i=0;i<parts.length;i++){ p=parts[i]; p.d+=.01; ctx.beginPath(); ctx.arc(p.x+Math.sin(p.d)*7*DPR,p.y,p.r,0,6.3); ctx.fill(); p.y+=p.s; if(p.y>H){ p.y=-4*DPR; p.x=Math.random()*W; } }
     } else if(mode==="clear"){
-      ctx.fillStyle="rgba(255,246,222,.5)";
-      for(i=0;i<parts.length;i++){ p=parts[i]; p.drift+=.005; ctx.beginPath(); ctx.arc(p.x+Math.sin(p.drift)*10*DPR,p.y,p.r,0,6.3); ctx.fill(); p.y-=p.s; if(p.y<-4*DPR){ p.y=H+4*DPR; p.x=Math.random()*W; } }
+      ctx.fillStyle="rgba(255,246,222,.45)";
+      for(i=0;i<parts.length;i++){ p=parts[i]; p.d+=.005; ctx.beginPath(); ctx.arc(p.x+Math.sin(p.d)*10*DPR,p.y,p.r,0,6.3); ctx.fill(); p.y-=p.s; if(p.y<-4*DPR){ p.y=H+4*DPR; p.x=Math.random()*W; } }
     }
     raf=requestAnimationFrame(frame);
   }
   function setMotion(m){
     if(reduced){ if(raf){cancelAnimationFrame(raf);raf=null;} if(ctx)ctx.clearRect(0,0,W,H); return; }
     mode=m; seed();
-    if(m==="none"||m==="partly"||m==="cloudy"||m==="fog"){ if(raf){cancelAnimationFrame(raf);raf=null;} ctx.clearRect(0,0,W,H); return; }
+    if(m!=="rain"&&m!=="storm"&&m!=="snow"&&m!=="clear"){ if(raf){cancelAnimationFrame(raf);raf=null;} if(ctx)ctx.clearRect(0,0,W,H); return; }
     if(!raf) frame();
   }
-  function setSky(bucket){
-    document.body.dataset.sky = bucket;
-    setMotion(bucket);
-  }
+  function setSky(bucket){ document.body.dataset.sky = bucket; setMotion(bucket); }
 
   /* ---- BART ---- */
-  function renderTrains(mins, delays, lens, source, apiTime){
+  function renderTrains(mins, delays, lens){
     var box=$("trains"); box.innerHTML="";
     var ranks=["Next","Then","After"];
     if(!mins.length){
@@ -325,18 +336,17 @@
           }
         }); });
         var ord=mins.map(function(m,i){return i;}).sort(function(a,b){return mins[a]-mins[b];});
-        renderTrains(ord.map(function(i){return mins[i];}),ord.map(function(i){return delays[i];}),ord.map(function(i){return lens[i];}),"live",root.time||"");
+        renderTrains(ord.map(function(i){return mins[i];}),ord.map(function(i){return delays[i];}),ord.map(function(i){return lens[i];}));
         return true;
       });
   }
-  function bartFallback(){ renderTrains(BART_FALLBACK.trains.map(function(t){return t.min;}),BART_FALLBACK.trains.map(function(t){return t.delay;}),BART_FALLBACK.trains.map(function(t){return t.len;}),"fallback",""); }
+  function bartFallback(){ renderTrains(BART_FALLBACK.trains.map(function(t){return t.min;}),BART_FALLBACK.trains.map(function(t){return t.delay;}),BART_FALLBACK.trains.map(function(t){return t.len;})); }
 
   /* ---- BIKES ---- */
   function renderBikes(d){
     var ebike=d.num_ebikes_available||0;
     var classic=Math.max(0,(d.num_bikes_available||0)-ebike);
-    $("ebikeBig").textContent=ebike;
-    $("classicBig").textContent=classic;
+    $("ebikeBig").textContent=ebike; $("classicBig").textContent=classic;
     bikeReportedTs=d.last_reported||null;
   }
   function loadBikes(){
@@ -359,10 +369,9 @@
     if(manual){ btn.classList.add("spin"); btn.disabled=true; }
     var wasFirst=firstLoad; firstLoad=false;
     var ok=true;
-
-    loadWeather().catch(function(){ if(wasFirst){ renderWeather(WX_FALLBACK.slots,"fallback"); } ok=false; });
-    loadBart().catch(function(){ if(wasFirst){ bartFallback(); } ok=false; });
-    loadBikes().catch(function(){ if(wasFirst){ renderBikes(BIKE_FALLBACK); } ok=false; })
+    loadWeather().catch(function(){ ok=false; });
+    loadBart().catch(function(){ ok=false; });
+    loadBikes().catch(function(){ ok=false; })
       .then(function(){
         liveOk = ok;
         if(!ok && wasFirst) flagSandbox();
@@ -371,8 +380,9 @@
       });
   }
 
-  // init
+  // init: paint a complete frame immediately (fallback), then go live
   canvas=$("wxcanvas"); ctx=canvas.getContext("2d"); sizeCanvas();
+  renderWeather(WX_FALLBACK.slots); bartFallback(); renderBikes(BIKE_FALLBACK); setStatus("live","loading…");
   var rsz; window.addEventListener("resize", function(){ clearTimeout(rsz); rsz=setTimeout(function(){ sizeCanvas(); seed(); }, 200); });
   $("refreshBtn").addEventListener("click", function(){ refresh(true); });
   document.addEventListener("visibilitychange", function(){ if(!document.hidden) refresh(false); });
