@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="SF commute board in a shoji frame: live trains, bikes, and the day's weather as the sky.">
 <meta name="color-scheme" content="light">
-<meta name="theme-color" content="#9d6e40">
+<meta name="theme-color" content="#cba572">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <style>html,body{height:100%}body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0);padding-bottom:env(safe-area-inset-bottom,0)}</style>
@@ -14,19 +14,24 @@
 <style>
   /* A shoji panel of real timber grain, floating in the day's living sky. */
   :root {
-    --paper:  #f3eee1;   /* solid washi for chips/buttons */
-    --glass:  rgba(243,238,225,.70);   /* translucent washi — sky glows through, no blur */
-    --wood-img: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22><defs><linearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%220%22 y2=%221%22><stop offset=%220%22 stop-color=%22%23b07e4a%22/><stop offset=%221%22 stop-color=%22%238c5f34%22/></linearGradient><filter id=%22f%22><feTurbulence type=%22fractalNoise%22 baseFrequency=%220.012 0.09%22 numOctaves=%225%22 seed=%224%22 stitchTiles=%22stitch%22/><feColorMatrix type=%22matrix%22 values=%220 0 0 0 0.30 0 0 0 0 0.19 0 0 0 0 0.09 0.9 0 0 0 0%22/></filter><filter id=%22f2%22><feTurbulence type=%22fractalNoise%22 baseFrequency=%220.02 0.14%22 numOctaves=%223%22 seed=%2219%22 stitchTiles=%22stitch%22/><feColorMatrix type=%22matrix%22 values=%220 0 0 0 0.95 0 0 0 0 0.78 0 0 0 0 0.55 0.35 0 0 0 0%22/></filter></defs><rect width=%22200%22 height=%22200%22 fill=%22url(%23g)%22/><rect width=%22200%22 height=%22200%22 filter=%22url(%23f2)%22/><rect width=%22200%22 height=%22200%22 filter=%22url(%23f)%22/></svg>');
-    --paper-2:#ece5d4;
+    --paper:  #f3eee1;
+    --glass:  rgba(243,238,225,.70);
     --ink:    #2b2620;
     --muted:  #756a5a;
-    --shu:    #bf4a2f;   /* vermilion — the Red Line / torii */
-    --ebike:  #be7a2c;   /* kaki amber */
-    --reg:    #3f5d6b;   /* ai indigo-slate */
+    --shu:    #bf4a2f;
     --live:   #5c8a53;
     --snap:   #b0863a;
     --puff:   rgba(255,255,255,.55);
     --bloom:  rgba(255,255,255,.35);
+    /* hinoki timber — horizontal grain for rails, vertical grain for stiles */
+    --wood-h: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22><defs><linearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%220%22 y2=%221%22><stop offset=%220%22 stop-color=%22%23cba572%22/><stop offset=%221%22 stop-color=%22%23b78b54%22/></linearGradient><filter id=%22f%22><feTurbulence type=%22fractalNoise%22 baseFrequency=%220.012 0.09%22 numOctaves=%225%22 seed=%224%22 stitchTiles=%22stitch%22/><feColorMatrix type=%22matrix%22 values=%220 0 0 0 0.42 0 0 0 0 0.29 0 0 0 0 0.15 0.5 0 0 0 0%22/></filter><filter id=%22h%22><feTurbulence type=%22fractalNoise%22 baseFrequency=%220.02 0.13%22 numOctaves=%223%22 seed=%2219%22 stitchTiles=%22stitch%22/><feColorMatrix type=%22matrix%22 values=%220 0 0 0 0.95 0 0 0 0 0.85 0 0 0 0 0.66 0.3 0 0 0 0%22/></filter></defs><rect width=%22200%22 height=%22200%22 fill=%22url(%23g)%22/><rect width=%22200%22 height=%22200%22 filter=%22url(%23h)%22/><rect width=%22200%22 height=%22200%22 filter=%22url(%23f)%22/></svg>');
+    --wood-v: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22><defs><linearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%220%22><stop offset=%220%22 stop-color=%22%23cba572%22/><stop offset=%221%22 stop-color=%22%23b78b54%22/></linearGradient><filter id=%22f%22><feTurbulence type=%22fractalNoise%22 baseFrequency=%220.09 0.012%22 numOctaves=%225%22 seed=%224%22 stitchTiles=%22stitch%22/><feColorMatrix type=%22matrix%22 values=%220 0 0 0 0.42 0 0 0 0 0.29 0 0 0 0 0.15 0.5 0 0 0 0%22/></filter><filter id=%22h%22><feTurbulence type=%22fractalNoise%22 baseFrequency=%220.13 0.02%22 numOctaves=%223%22 seed=%2219%22 stitchTiles=%22stitch%22/><feColorMatrix type=%22matrix%22 values=%220 0 0 0 0.95 0 0 0 0 0.85 0 0 0 0 0.66 0.3 0 0 0 0%22/></filter></defs><rect width=%22200%22 height=%22200%22 fill=%22url(%23g)%22/><rect width=%22200%22 height=%22200%22 filter=%22url(%23h)%22/><rect width=%22200%22 height=%22200%22 filter=%22url(%23f)%22/></svg>');
+    /* one type scale, used everywhere */
+    --fs-title: 15px;
+    --fs-num:   40px;
+    --fs-unit:  13px;
+    --fs-label: 10.5px;
+    --fs-sub:   12px;
     --sans: "Zen Kaku Gothic New", system-ui, -apple-system, sans-serif;
     --serif: "Zen Old Mincho", Georgia, "Times New Roman", serif;
     color-scheme: light;
@@ -75,55 +80,50 @@
     padding-right: max(18px, env(safe-area-inset-right, 0px));
     padding-block: 42px;
   }
-  .banner { max-width: 432px; width: 100%; background: var(--paper); border: 1px solid #b79a6a; border-left: 4px solid var(--snap); padding: 10px 13px; font-size: 12.5px; color: var(--muted); line-height: 1.5; box-shadow: 0 8px 24px -12px rgba(30,20,10,.5); }
+  .banner { max-width: 432px; width: 100%; background: var(--paper); border: 1px solid #b79a6a; border-left: 4px solid var(--snap); padding: 10px 13px; font-size: var(--fs-sub); color: var(--muted); line-height: 1.5; box-shadow: 0 8px 24px -12px rgba(30,20,10,.5); }
   .banner b { color: var(--ink); }
   .banner[hidden] { display: none; }
 
-  /* ---------- timber frame ---------- */
+  /* ---------- timber frame: four grain-oriented members ---------- */
   .frame {
-    position: relative; width: 100%; max-width: 432px;
-    border: 15px solid transparent;
-    border-image: var(--wood-img) 40 repeat;
+    position: relative; width: 100%; max-width: 432px; padding: 15px;
     box-shadow: 0 28px 55px -22px rgba(28,18,8,.6);
   }
-  .panel { position: relative; background: var(--glass); display: flex; flex-direction: column; }
-  .divider { height: 7px; background: var(--wood-img); background-size: cover; }
+  .edge { position: absolute; z-index: 1; background-size: cover; background-position: center; }
+  .edge.left   { left: 0;  top: 0; bottom: 0; width: 15px;  background-image: var(--wood-v); box-shadow: inset -1px 0 2px rgba(60,40,18,.28); }
+  .edge.right  { right: 0; top: 0; bottom: 0; width: 15px;  background-image: var(--wood-v); box-shadow: inset 1px 0 2px rgba(60,40,18,.28); }
+  .edge.top    { top: 0;    left: 15px; right: 15px; height: 15px; background-image: var(--wood-h); box-shadow: inset 0 -1px 2px rgba(60,40,18,.28); }
+  .edge.bottom { bottom: 0; left: 15px; right: 15px; height: 15px; background-image: var(--wood-h); box-shadow: inset 0 1px 2px rgba(60,40,18,.28); }
+
+  .panel { position: relative; z-index: 0; background: var(--glass); display: flex; flex-direction: column; }
+  .divider { height: 4px; background-image: var(--wood-h); background-size: cover; }
   .pane { display: flex; flex-direction: column; }
   .pane-head { padding: 12px 15px 8px; display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
-  .pane-title { font-family: var(--serif); font-weight: 600; font-size: 16px; letter-spacing: .01em; }
-  .pane-sub { font-size: 11px; color: var(--muted); letter-spacing: .02em; }
-  .mark { width: 9px; height: 9px; flex: none; align-self: center; }
-  .mark.shu { background: var(--shu); }
-  .mark.ebike { background: var(--ebike); }
-  .mark.reg { background: var(--reg); }
+  .pane-title { font-family: var(--serif); font-weight: 600; font-size: var(--fs-title); letter-spacing: .01em; }
+  .pane-sub { font-size: var(--fs-sub); color: var(--muted); letter-spacing: .02em; }
 
   .cells { display: grid; gap: 0; }
   .c2 { grid-template-columns: 1fr 1fr; }
   .c3 { grid-template-columns: 1fr 1fr 1fr; }
-  .cell { padding: 11px 15px 15px; min-width: 0; min-height: 92px; }
+  .cell { padding: 10px 15px 15px; min-width: 0; min-height: 88px; }
 
-  .wx-when { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  /* one consistent rhythm in every cell: kicker · number(+unit) · sub */
+  .kick { font-size: var(--fs-label); letter-spacing: .13em; text-transform: uppercase; color: var(--muted); }
+  .num  { font-size: var(--fs-num); font-weight: 700; line-height: 1; margin-top: 7px; font-variant-numeric: tabular-nums; }
+  .unit { font-size: var(--fs-unit); font-weight: 400; color: var(--muted); margin-left: 2px; }
+  .sub  { font-size: var(--fs-sub); color: var(--muted); margin-top: 6px; min-height: 1em; }
+  .sub .late { color: var(--shu); }
+
   .wx-row { display: flex; align-items: center; gap: 9px; margin-top: 6px; }
-  .wx-ico { width: 30px; height: 30px; flex: none; display: block; }
+  .wx-ico { width: 28px; height: 28px; flex: none; display: block; }
   .wx-ico svg { width: 100%; height: 100%; display: block; }
-  .wx-temp { font-size: 34px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
-  .wx-desc { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+  .wx-row .num { margin-top: 0; }
 
-  .train-cell { position: relative; }
-  .t-rank { font-size: 10px; letter-spacing: .13em; text-transform: uppercase; color: var(--muted); }
-  .train-cell.next .t-rank { color: var(--shu); }
-  .t-min { font-size: 38px; font-weight: 700; line-height: .95; margin-top: 6px; font-variant-numeric: tabular-nums; }
-  .t-min.leaving { font-size: 22px; color: var(--shu); }
-  .t-unit { font-size: 12px; font-weight: 400; color: var(--muted); margin-left: 2px; }
-  .t-meta { font-size: 10.5px; color: var(--muted); margin-top: 5px; min-height: 1em; }
-  .t-meta .late { color: var(--shu); }
-  .t-empty { font-size: 12.5px; color: var(--muted); line-height: 1.5; margin-top: 4px; }
-
-  .k { font-size: 11px; letter-spacing: .05em; color: var(--muted); display: inline-flex; align-items: center; gap: 7px; }
-  .num { font-size: 52px; font-weight: 700; line-height: .9; margin-top: 8px; font-variant-numeric: tabular-nums; }
+  .train-cell.next .kick { color: var(--shu); }
+  .num.leaving { font-size: 22px; color: var(--shu); }
 
   .controls { max-width: 432px; width: 100%; display: flex; align-items: center; gap: 10px; }
-  .status { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--ink); background: var(--paper); border: 1px solid #b79a6a; padding: 7px 10px; }
+  .status { display: inline-flex; align-items: center; gap: 7px; font-size: var(--fs-sub); color: var(--ink); background: var(--paper); border: 1px solid #b79a6a; padding: 7px 10px; }
   .status .sq { width: 8px; height: 8px; background: var(--live); flex: none; }
   .status .sq.snap { background: var(--snap); }
   .status .sq.err { background: var(--shu); }
@@ -138,9 +138,9 @@
 
   /* temporary sky preview toggle — removed for final */
   .skytoggle { max-width: 432px; width: 100%; display: flex; align-items: center; gap: 9px; }
-  .skytoggle .lbl { font-size: 12px; color: #fbf7ee; text-shadow: 0 1px 4px rgba(0,0,0,.45); letter-spacing: .02em; }
+  .skytoggle .lbl { font-size: var(--fs-sub); color: #fbf7ee; text-shadow: 0 1px 4px rgba(0,0,0,.45); letter-spacing: .02em; }
   .seg { display: inline-flex; border: 1px solid #b79a6a; background: var(--paper); box-shadow: 0 6px 18px -10px rgba(30,20,10,.5); }
-  .seg button { font-family: var(--sans); font-size: 12px; color: var(--ink); background: transparent; border: 0; border-left: 1px solid #d8cdb8; padding: 6px 12px; cursor: pointer; }
+  .seg button { font-family: var(--sans); font-size: var(--fs-sub); color: var(--ink); background: transparent; border: 0; border-left: 1px solid #d8cdb8; padding: 6px 12px; cursor: pointer; }
   .seg button:first-child { border-left: 0; }
   .seg button.on { background: var(--ink); color: #f3eee1; }
 </style>
@@ -157,6 +157,11 @@
   </div>
 
   <main class="frame">
+    <span class="edge top"></span>
+    <span class="edge bottom"></span>
+    <span class="edge left"></span>
+    <span class="edge right"></span>
+
     <div class="panel">
       <section class="pane">
         <div class="pane-head"><span class="pane-title">San Francisco</span><span class="pane-sub">today · worst of 7a &amp; 4p</span></div>
@@ -178,8 +183,8 @@
       <section class="pane">
         <div class="pane-head"><span class="pane-title">18th Ave at California</span><span class="pane-sub">Bay Wheels</span></div>
         <div class="cells c2">
-          <div class="cell"><div class="k">E-bikes</div><div class="num" id="ebikeBig">–</div></div>
-          <div class="cell"><div class="k">Regular</div><div class="num" id="classicBig">–</div></div>
+          <div class="cell"><div class="kick">E-bikes</div><div class="num" id="ebikeBig">–</div></div>
+          <div class="cell"><div class="kick">Regular</div><div class="num" id="classicBig">–</div></div>
         </div>
       </section>
     </div>
@@ -228,7 +233,7 @@
   function flagSandbox(){ if(!sandboxFlagged){ sandboxFlagged=true; $("sandboxBanner").hidden=false; } }
   function setStatus(kind, text){ var sq=$("statusSq"); sq.className="sq"+(kind==="snap"?" snap":kind==="err"?" err":""); $("statusText").textContent=text; }
 
-  /* ---- weather classification ---- */
+  /* ---- weather ---- */
   function wxInfo(code){
     if(code<=1) return {sky:"clear",  sev:0, label: code===0?"Clear":"Mostly clear"};
     if(code===2) return {sky:"partly", sev:1, label:"Partly cloudy"};
@@ -248,7 +253,7 @@
     snow:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 15h9a4 4 0 0 0 .4-8A5 5 0 0 0 7 5.5 3.8 3.8 0 0 0 7 15z"/><path d="M9 19h.01M12 20.5h.01M15 19h.01"/></svg>',
     storm:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 14h9a4 4 0 0 0 .4-8A5 5 0 0 0 7 4.5 3.8 3.8 0 0 0 7 14z"/><path d="M12 15l-2 3.5h3L11 22"/></svg>'
   };
-  var WX_TINT = { clear:"#c6974a", partly:"#c6974a", cloudy:"var(--muted)", fog:"var(--muted)", rain:"var(--reg)", snow:"var(--reg)", storm:"#8a6d3a" };
+  var WX_TINT = { clear:"#c6974a", partly:"#c6974a", cloudy:"var(--muted)", fog:"var(--muted)", rain:"#3f5d6b", snow:"#3f5d6b", storm:"#8a6d3a" };
   var WX_WHEN = ["7 AM", "4 PM"];
 
   function renderWeather(slots){
@@ -258,10 +263,10 @@
       if(!worst || info.sev > worst.sev) worst = info;
       var precip = (s.precip!=null && s.precip>=20) ? " · "+s.precip+"% rain" : "";
       $("wx"+i).innerHTML =
-        '<div class="wx-when">'+WX_WHEN[i]+'</div>'+
+        '<div class="kick">'+WX_WHEN[i]+'</div>'+
         '<div class="wx-row"><span class="wx-ico" style="color:'+(WX_TINT[info.sky]||"var(--ink)")+'">'+WX_ICONS[info.sky]+'</span>'+
-        '<span class="wx-temp">'+Math.round(s.temp)+'°</span></div>'+
-        '<div class="wx-desc">'+info.label+precip+'</div>';
+        '<span class="num">'+Math.round(s.temp)+'<span class="unit">°</span></span></div>'+
+        '<div class="sub">'+info.label+precip+'</div>';
     });
     if(worst && !skyOverride) setSky(worst.sky);
   }
@@ -277,7 +282,7 @@
       });
   }
 
-  /* ---- sky motion (rain / snow / clear motes; clouds are CSS) ---- */
+  /* ---- sky motion ---- */
   var canvas, ctx, W, H, DPR, mode="none", parts=[], raf=null;
   var reduced = (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
   function sizeCanvas(){ DPR=Math.min(window.devicePixelRatio||1,2); W=canvas.width=Math.floor(innerWidth*DPR); H=canvas.height=Math.floor(innerHeight*DPR); canvas.style.width=innerWidth+"px"; canvas.style.height=innerHeight+"px"; }
@@ -314,16 +319,16 @@
     var box=$("trains"); box.innerHTML="";
     var ranks=["Next","Then","After"];
     if(!mins.length){
-      box.innerHTML='<div class="cell train-cell"><div class="t-rank">Red Line</div><div class="t-empty">No eastbound trains right now — try the Orange Line.</div></div>';
+      box.innerHTML='<div class="cell train-cell"><div class="kick">Red Line</div><div class="sub">No eastbound trains right now — try the Orange Line.</div></div>';
     } else {
       for(var i=0;i<Math.min(3,mins.length);i++){
         var m=mins[i], leaving=(m===0);
         var late = delays && delays[i]>=60 ? Math.round(delays[i]/60) : 0;
         var el=document.createElement("div");
         el.className="cell train-cell"+(i===0?" next":"");
-        el.innerHTML='<div class="t-rank">'+ranks[i]+'</div>'+
-          (leaving?'<div class="t-min leaving">Leaving</div>':'<div class="t-min">'+m+'<span class="t-unit">min</span></div>')+
-          '<div class="t-meta">'+(lens&&lens[i]?lens[i]+'-car':'')+(late?' · <span class="late">'+late+' late</span>':'')+'</div>';
+        el.innerHTML='<div class="kick">'+ranks[i]+'</div>'+
+          (leaving?'<div class="num leaving">Leaving</div>':'<div class="num">'+m+'<span class="unit">min</span></div>')+
+          '<div class="sub">'+(lens&&lens[i]?lens[i]+'-car':'')+(late?' · <span class="late">'+late+' late</span>':'')+'</div>';
         box.appendChild(el);
       }
     }
@@ -385,7 +390,6 @@
       });
   }
 
-  // init: paint a complete frame immediately (fallback), then go live
   canvas=$("wxcanvas"); ctx=canvas.getContext("2d"); sizeCanvas();
   renderWeather(WX_FALLBACK.slots); bartFallback(); renderBikes(BIKE_FALLBACK); setStatus("live","loading…");
   var rsz; window.addEventListener("resize", function(){ clearTimeout(rsz); rsz=setTimeout(function(){ sizeCanvas(); seed(); }, 200); });
