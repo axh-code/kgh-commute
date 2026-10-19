@@ -105,7 +105,7 @@
   .cells { display: grid; gap: 0; }
   .c2 { grid-template-columns: 1fr 1fr; }
   .c3 { grid-template-columns: 1fr 1fr 1fr; }
-  .cell { padding: 10px 15px 15px; min-width: 0; min-height: 88px; }
+  .cell { padding: 10px 15px 15px; min-width: 0; min-height: 104px; }
 
   /* one consistent rhythm in every cell: kicker · number(+unit) · sub */
   .kick { font-size: var(--fs-label); letter-spacing: .13em; text-transform: uppercase; color: var(--muted); }
@@ -135,14 +135,6 @@
   .btn svg { width: 14px; height: 14px; }
   .btn.spin svg { animation: spin .8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* temporary sky preview toggle — removed for final */
-  .skytoggle { max-width: 432px; width: 100%; display: flex; align-items: center; gap: 9px; }
-  .skytoggle .lbl { font-size: var(--fs-sub); color: #fbf7ee; text-shadow: 0 1px 4px rgba(0,0,0,.45); letter-spacing: .02em; }
-  .seg { display: inline-flex; border: 1px solid #b79a6a; background: var(--paper); box-shadow: 0 6px 18px -10px rgba(30,20,10,.5); }
-  .seg button { font-family: var(--sans); font-size: var(--fs-sub); color: var(--ink); background: transparent; border: 0; border-left: 1px solid #d8cdb8; padding: 6px 12px; cursor: pointer; }
-  .seg button:first-child { border-left: 0; }
-  .seg button.on { background: var(--ink); color: #f3eee1; }
 </style>
 </head>
 <body>
@@ -164,7 +156,7 @@
 
     <div class="panel">
       <section class="pane">
-        <div class="pane-head"><span class="pane-title">Red Line Eastbound from Montgomery</span><span class="pane-sub">toward Richmond</span></div>
+        <div class="pane-head"><span class="pane-title">Red Line Eastbound from Montgomery</span></div>
         <div class="cells c3" id="trains"></div>
       </section>
 
@@ -181,7 +173,7 @@
       <div class="divider"></div>
 
       <section class="pane">
-        <div class="pane-head"><span class="pane-title">Weather</span><span class="pane-sub">San Francisco · worst of 7a &amp; 4p</span></div>
+        <div class="pane-head"><span class="pane-title">Weather</span><span class="pane-sub">San Francisco</span></div>
         <div class="cells c2">
           <div class="cell" id="wx0"></div>
           <div class="cell" id="wx1"></div>
@@ -200,15 +192,6 @@
     </button>
   </div>
 
-  <div class="skytoggle">
-    <span class="lbl">Preview sky:</span>
-    <span class="seg" id="seg">
-      <button type="button" data-sky="clear">Sunny</button>
-      <button type="button" data-sky="cloudy">Cloudy</button>
-      <button type="button" data-sky="rain">Rainy</button>
-      <button type="button" data-sky="auto" class="on">Auto</button>
-    </span>
-  </div>
 </div>
 
 <script>
@@ -394,13 +377,6 @@
   renderWeather(WX_FALLBACK.slots); bartFallback(); renderBikes(BIKE_FALLBACK); setStatus("live","loading…");
   var rsz; window.addEventListener("resize", function(){ clearTimeout(rsz); rsz=setTimeout(function(){ sizeCanvas(); seed(); }, 200); });
   $("refreshBtn").addEventListener("click", function(){ refresh(true); });
-  $("seg").addEventListener("click", function(e){
-    var b = e.target.closest("button"); if(!b) return;
-    var v = b.getAttribute("data-sky");
-    [].forEach.call(this.querySelectorAll("button"), function(x){ x.classList.toggle("on", x===b); });
-    if(v==="auto"){ skyOverride=null; refresh(false); }
-    else { skyOverride=v; setSky(v); }
-  });
   document.addEventListener("visibilitychange", function(){ if(!document.hidden) refresh(false); });
   setInterval(updateStatus, 1000);
   setInterval(function(){ if(!document.hidden) refresh(false); }, REFRESH_MS);
