@@ -184,12 +184,6 @@
 
   <div class="controls">
     <span class="status"><span class="sq" id="statusSq"></span><span id="statusText">loading…</span></span>
-    <span class="grow"></span>
-    <a class="btn" href="https://maps.google.com/?q=37.785111,-122.477667" target="_blank" rel="noopener">Dock in Maps</a>
-    <button class="btn" id="refreshBtn" aria-label="Refresh now">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
-      Refresh
-    </button>
   </div>
 
 </div>
@@ -356,9 +350,7 @@
     var ago = bikeReportedTs!=null ? (Date.now()/1000 - bikeReportedTs) : null;
     setStatus("live", ago!=null ? "live · "+fmtAgo(ago) : "live");
   }
-  function refresh(manual){
-    var btn=$("refreshBtn");
-    if(manual){ btn.classList.add("spin"); btn.disabled=true; }
+  function refresh(){
     var wasFirst=firstLoad; firstLoad=false;
     var ok=true;
     loadWeather().catch(function(){ ok=false; });
@@ -368,18 +360,16 @@
         liveOk = ok;
         if(!ok && wasFirst) flagSandbox();
         updateStatus();
-        if(manual) setTimeout(function(){ btn.classList.remove("spin"); btn.disabled=false; }, 450);
       });
   }
 
   canvas=$("wxcanvas"); ctx=canvas.getContext("2d"); sizeCanvas();
   renderWeather(WX_FALLBACK.slots); bartFallback(); renderBikes(BIKE_FALLBACK); setStatus("live","loading…");
   var rsz; window.addEventListener("resize", function(){ clearTimeout(rsz); rsz=setTimeout(function(){ sizeCanvas(); seed(); }, 200); });
-  $("refreshBtn").addEventListener("click", function(){ refresh(true); });
-  document.addEventListener("visibilitychange", function(){ if(!document.hidden) refresh(false); });
+  document.addEventListener("visibilitychange", function(){ if(!document.hidden) refresh(); });
   setInterval(updateStatus, 1000);
-  setInterval(function(){ if(!document.hidden) refresh(false); }, REFRESH_MS);
-  refresh(false);
+  setInterval(function(){ if(!document.hidden) refresh(); }, REFRESH_MS);
+  refresh();
 })();
 </script>
 </body>
