@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="SF commute board in a shoji frame: live trains, bikes, and the day's weather as the sky.">
+<meta name="description" content="SF commute board in a shoji frame: when to leave, live trains, bikes, and the day's weather as the sky.">
 <meta name="color-scheme" content="light">
 <meta name="theme-color" content="#cba572">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,6 +19,8 @@
     --ink:    #2b2620;
     --muted:  #756a5a;
     --shu:    #bf4a2f;
+    --stop:   #b23b2b;
+    --warn:   #c79a2e;
     --live:   #5c8a53;
     --snap:   #b0863a;
     --puff:   rgba(255,255,255,.55);
@@ -122,6 +124,13 @@
   .train-cell.next .kick { color: var(--shu); }
   .num.leaving { font-size: 22px; color: var(--shu); }
 
+  .cstatus { display: flex; align-items: center; gap: 10px; margin-top: 6px; min-height: 40px; }
+  .csq { width: 30px; height: 30px; flex: none; }
+  .csq.go { background: var(--live); }
+  .csq.soon { background: var(--warn); }
+  .csq.wait { background: var(--stop); }
+  .cword { font-size: var(--fs-sub); color: var(--muted); }
+
   .controls { max-width: 432px; width: 100%; display: flex; align-items: center; gap: 10px; }
   .status { display: inline-flex; align-items: center; gap: 7px; font-size: var(--fs-sub); color: var(--ink); background: var(--paper); border: 1px solid #b79a6a; padding: 7px 10px; }
   .status .sq { width: 8px; height: 8px; background: var(--live); flex: none; }
@@ -155,6 +164,17 @@
     <span class="edge right"></span>
 
     <div class="panel">
+      <section class="pane">
+        <div class="pane-head"><span class="pane-title">Commute</span><span class="pane-sub">30 min to BART · 35 after</span></div>
+        <div class="cells c3">
+          <div class="cell"><div class="kick">Leave in</div><div class="num" id="leaveIn">–</div></div>
+          <div class="cell"><div class="kick">Arrive at</div><div class="num" id="arriveAt">–</div></div>
+          <div class="cell"><div class="kick">Status</div><div class="cstatus" id="cstatus"></div></div>
+        </div>
+      </section>
+
+      <div class="divider"></div>
+
       <section class="pane">
         <div class="pane-head"><span class="pane-title">Red Line Eastbound from Montgomery</span></div>
         <div class="cells c3" id="trains"></div>
@@ -205,6 +225,7 @@
   var WX_FALLBACK = { slots: [ {temp:55,code:3,precip:0}, {temp:62,code:3,precip:0} ] };
 
   var bikeReportedTs = null, sandboxFlagged = false, firstLoad = true, liveOk = true, skyOverride = null;
+  var TO_BART_MIN = 30, AFTER_BART_MIN = 35, cMins = null, cEbikes = null, cRainy = false;
   var $ = function (id) { return document.getElementById(id); };
   function fmtAgo(sec){ if(sec==null)return""; var s=Math.max(0,Math.floor(sec)); if(s<60)return s+"s ago"; var m=Math.floor(s/60); if(m<60)return m+" min ago"; return Math.floor(m/60)+"h ago"; }
   function flagSandbox(){ if(!sandboxFlagged){ sandboxFlagged=true; $("sandboxBanner").hidden=false; } }
@@ -246,6 +267,8 @@
         '<div class="sub">'+info.label+precip+'</div>';
     });
     if(worst && !skyOverride) setSky(worst.sky);
+    cRainy = !!(worst && (worst.sky==="rain"||worst.sky==="storm"));
+    computeCommute();
   }
   function loadWeather(){
     return fetch(WX_URL,{cache:"no-store"}).then(function(r){ if(!r.ok)throw new Error(r.status); return r.json(); })
@@ -308,6 +331,7 @@
         box.appendChild(el);
       }
     }
+    cMins = mins.slice(); computeCommute();
   }
   function loadBart(){
     return fetch(BART_URL,{cache:"no-store"}).then(function(r){ if(!r.ok)throw new Error(r.status); return r.json(); })
@@ -334,6 +358,7 @@
     var classic=Math.max(0,(d.num_bikes_available||0)-ebike);
     $("ebikeBig").textContent=ebike; $("classicBig").textContent=classic;
     bikeReportedTs=d.last_reported||null;
+    cEbikes=ebike; computeCommute();
   }
   function loadBikes(){
     return fetch(STATUS_URL,{cache:"no-store"}).then(function(r){ if(!r.ok)throw new Error(r.status); return r.json(); })
@@ -342,6 +367,28 @@
         if(!st) throw new Error("missing");
         renderBikes(st); return true;
       });
+  }
+
+  /* ---- commute countdown ---- */
+  function pad2(n){ return n<10?"0"+n:""+n; }
+  function computeCommute(){
+    var el=$("leaveIn"), ea=$("arriveAt"), es=$("cstatus");
+    if(!el) return;
+    if(cMins && cMins.length){
+      var chosen=null, i;
+      for(i=0;i<cMins.length;i++){ if(cMins[i]>=TO_BART_MIN){ chosen=cMins[i]; break; } }
+      if(chosen==null) chosen=cMins[cMins.length-1];
+      var leave=Math.max(0, chosen-TO_BART_MIN);
+      el.innerHTML = leave===0 ? "Now" : leave+'<span class="unit">min</span>';
+      var arr=new Date(Date.now()+(chosen+AFTER_BART_MIN)*60000);
+      var h=arr.getHours(), m=arr.getMinutes(), ap=h>=12?"pm":"am", h12=((h+11)%12)+1;
+      ea.innerHTML = h12+":"+pad2(m)+'<span class="unit">'+ap+'</span>';
+    } else { el.textContent="–"; ea.textContent="–"; }
+    var cls, word;
+    if(cRainy || cEbikes==null || cEbikes===0){ cls="wait"; word="Wait"; }
+    else if(cEbikes<=2){ cls="soon"; word="Soon"; }
+    else { cls="go"; word="Go"; }
+    es.innerHTML = '<span class="csq '+cls+'"></span><span class="cword">'+word+'</span>';
   }
 
   /* ---- orchestration ---- */
