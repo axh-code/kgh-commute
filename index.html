@@ -14,7 +14,9 @@
 <style>
   /* A shoji panel of real timber grain, floating in the day's living sky. */
   :root {
-    --paper:  #f3eee1;   /* washi, near-opaque so it stays calm */
+    --paper:  #f3eee1;   /* solid washi for chips/buttons */
+    --glass:  rgba(243,238,225,.70);   /* translucent washi — sky glows through, no blur */
+    --wood-img: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22><defs><linearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%220%22 y2=%221%22><stop offset=%220%22 stop-color=%22%23b07e4a%22/><stop offset=%221%22 stop-color=%22%238c5f34%22/></linearGradient><filter id=%22f%22><feTurbulence type=%22fractalNoise%22 baseFrequency=%220.012 0.09%22 numOctaves=%225%22 seed=%224%22 stitchTiles=%22stitch%22/><feColorMatrix type=%22matrix%22 values=%220 0 0 0 0.30 0 0 0 0 0.19 0 0 0 0 0.09 0.9 0 0 0 0%22/></filter><filter id=%22f2%22><feTurbulence type=%22fractalNoise%22 baseFrequency=%220.02 0.14%22 numOctaves=%223%22 seed=%2219%22 stitchTiles=%22stitch%22/><feColorMatrix type=%22matrix%22 values=%220 0 0 0 0.95 0 0 0 0 0.78 0 0 0 0 0.55 0.35 0 0 0 0%22/></filter></defs><rect width=%22200%22 height=%22200%22 fill=%22url(%23g)%22/><rect width=%22200%22 height=%22200%22 filter=%22url(%23f2)%22/><rect width=%22200%22 height=%22200%22 filter=%22url(%23f)%22/></svg>');
     --paper-2:#ece5d4;
     --ink:    #2b2620;
     --muted:  #756a5a;
@@ -79,17 +81,15 @@
 
   /* ---------- timber frame ---------- */
   .frame {
-    position: relative; width: 100%; max-width: 432px; padding: 14px;
-    box-shadow:
-      inset 1.5px 1.5px 2px rgba(255,236,205,.4),
-      inset -2px -2px 4px rgba(54,34,15,.45),
-      inset 0 0 0 1px rgba(54,34,15,.3),
-      0 28px 55px -22px rgba(28,18,8,.6);
+    position: relative; width: 100%; max-width: 432px;
+    border: 15px solid transparent;
+    border-image: var(--wood-img) 40 repeat;
+    box-shadow: 0 28px 55px -22px rgba(28,18,8,.6);
   }
-  .wood { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; display: block; }
-  .panel { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 5px; }
+  .panel { position: relative; background: var(--glass); display: flex; flex-direction: column; }
+  .divider { height: 7px; background: var(--wood-img); background-size: cover; }
   .pane { display: flex; flex-direction: column; }
-  .pane-head { background: var(--paper); padding: 12px 15px 8px; display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+  .pane-head { padding: 12px 15px 8px; display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
   .pane-title { font-family: var(--serif); font-weight: 600; font-size: 16px; letter-spacing: .01em; }
   .pane-sub { font-size: 11px; color: var(--muted); letter-spacing: .02em; }
   .mark { width: 9px; height: 9px; flex: none; align-self: center; }
@@ -100,7 +100,7 @@
   .cells { display: grid; gap: 0; }
   .c2 { grid-template-columns: 1fr 1fr; }
   .c3 { grid-template-columns: 1fr 1fr 1fr; }
-  .cell { background: var(--paper); padding: 11px 15px 15px; min-width: 0; min-height: 92px; }
+  .cell { padding: 11px 15px 15px; min-width: 0; min-height: 92px; }
 
   .wx-when { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
   .wx-row { display: flex; align-items: center; gap: 9px; margin-top: 6px; }
@@ -157,22 +157,6 @@
   </div>
 
   <main class="frame">
-    <svg class="wood" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" viewBox="0 0 300 150" aria-hidden="true">
-      <defs>
-        <filter id="grain" x="0" y="0" width="100%" height="100%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.013 0.1" numOctaves="4" seed="8" stitchTiles="stitch"/>
-          <feColorMatrix type="matrix" values="0 0 0 0 0.37  0 0 0 0 0.25  0 0 0 0 0.13  0.72 0 0 0 0"/>
-        </filter>
-        <filter id="grain2" x="0" y="0" width="100%" height="100%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.02 0.14" numOctaves="3" seed="21" stitchTiles="stitch"/>
-          <feColorMatrix type="matrix" values="0 0 0 0 0.86  0 0 0 0 0.66  0 0 0 0 0.42  0.3 0 0 0 0"/>
-        </filter>
-      </defs>
-      <rect width="300" height="150" fill="#9d6e40"/>
-      <rect width="300" height="150" filter="url(#grain2)"/>
-      <rect width="300" height="150" filter="url(#grain)"/>
-    </svg>
-
     <div class="panel">
       <section class="pane">
         <div class="pane-head"><span class="pane-title">San Francisco</span><span class="pane-sub">today · worst of 7a &amp; 4p</span></div>
@@ -182,10 +166,14 @@
         </div>
       </section>
 
+      <div class="divider"></div>
+
       <section class="pane">
         <div class="pane-head"><span class="pane-title">Red Line · Eastbound</span><span class="pane-sub">Montgomery → Richmond</span></div>
         <div class="cells c3" id="trains"></div>
       </section>
+
+      <div class="divider"></div>
 
       <section class="pane">
         <div class="pane-head"><span class="pane-title">18th Ave at California</span><span class="pane-sub">Bay Wheels</span></div>
