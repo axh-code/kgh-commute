@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Live SF commute: next eastbound Red Line trains at Montgomery and bikes at the 18th Ave dock.">
+<meta name="description" content="Live SF commute: 7am/4pm weather, next eastbound Red Line trains at Montgomery, and bikes at the 18th Ave dock.">
 <meta name="color-scheme" content="light dark">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,7 +11,7 @@
 <title>Bikes &amp; BART</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&family=Space+Mono:wght@400;700&display=swap">
 <style>
-  /* Layout: two stacked cards — next eastbound trains, then bikes at the dock. Nothing else. */
+  /* Layout: three stacked cards — SF weather at 7am/4pm, next eastbound trains, bikes at the dock. */
   :root {
     --bg: #eef1ef;
     --panel: #ffffff;
@@ -24,6 +24,7 @@
     --classic: #0a7c78;     /* teal — regular bikes */
     --ebike: #c6471f;       /* burnt orange — e-bikes */
     --bart-red: #d33a2c;
+    --rain: #3b73c2;
     --good: #178a4c;
     --warn: #b7791f;
     --bad: #c23b3b;
@@ -36,7 +37,7 @@
     :root:not([data-theme="light"]) {
       --bg: #0c1413; --panel: #132220; --panel-2: #0f1b1a; --ink: #eaf2ef;
       --muted: #8ba39e; --hair: #223733; --accent: #2bb7af; --accent-ink: #9fe8e2;
-      --classic: #2bb7af; --ebike: #f5774a; --bart-red: #f0564a;
+      --classic: #2bb7af; --ebike: #f5774a; --bart-red: #f0564a; --rain: #6ea8e8;
       --good: #35c472; --warn: #e0a94a; --bad: #f06a6a;
       --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.45); color-scheme: dark;
     }
@@ -44,7 +45,7 @@
   :root[data-theme="dark"] {
     --bg: #0c1413; --panel: #132220; --panel-2: #0f1b1a; --ink: #eaf2ef;
     --muted: #8ba39e; --hair: #223733; --accent: #2bb7af; --accent-ink: #9fe8e2;
-    --classic: #2bb7af; --ebike: #f5774a; --bart-red: #f0564a;
+    --classic: #2bb7af; --ebike: #f5774a; --bart-red: #f0564a; --rain: #6ea8e8;
     --good: #35c472; --warn: #e0a94a; --bad: #f06a6a;
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.45); color-scheme: dark;
   }
@@ -78,6 +79,16 @@
   .dot.stale { background: var(--warn); }
   .dot.err { background: var(--bad); }
   @media (prefers-reduced-motion: reduce) { .dot.beat { animation: none; } }
+
+  /* weather */
+  .wx { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .wx-slot { background: var(--panel-2); border: 1px solid var(--hair); border-radius: 14px; padding: 14px 15px; display: flex; align-items: center; gap: 13px; min-width: 0; }
+  .wx-ico { width: 34px; height: 34px; flex: none; display: block; }
+  .wx-ico svg { width: 100%; height: 100%; display: block; }
+  .wx-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .wx-when { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .wx-temp { font-family: var(--display); font-weight: 700; font-size: 30px; line-height: 1.02; }
+  .wx-desc { font-size: 12.5px; color: var(--muted); }
 
   /* BART train cards */
   .trains { display: flex; gap: 10px; flex-wrap: wrap; }
@@ -117,6 +128,18 @@
   <div class="banner" id="sandboxBanner" hidden>
     <b>Preview note:</b> the claude.ai sandbox blocks outside data, so these are saved numbers. On your hosted site (pinyonstudio.com) they're live.
   </div>
+
+  <!-- WEATHER -->
+  <section class="panel">
+    <div class="phead">
+      <div class="where">
+        <div class="title">San Francisco today</div>
+        <div class="loc">Morning &amp; afternoon</div>
+      </div>
+      <div class="live"><span class="dot" id="wxDot"></span><span id="wxLive">Loading…</span></div>
+    </div>
+    <div class="wx" id="wx"></div>
+  </section>
 
   <!-- BART -->
   <section class="panel">
@@ -172,18 +195,74 @@
   var BART_LINE = "RED", BART_DIR = "North";   // eastbound toward Richmond
 
   var STATION_ID = "37cf6b02-5cb0-4461-bf45-0ae60a1a2fb7";
-  var INFO_URL = "https://gbfs.lyft.com/gbfs/1.1/bay/en/station_information.json";
   var STATUS_URL = "https://gbfs.lyft.com/gbfs/1.1/bay/en/station_status.json";
+
+  var WX_URL = "https://api.open-meteo.com/v1/forecast?latitude=37.7749&longitude=-122.4194&hourly=temperature_2m,weather_code,precipitation_probability&temperature_unit=fahrenheit&timezone=America/Los_Angeles&forecast_days=1";
+
   var REFRESH_MS = 45000;
 
-  var BART_FALLBACK = { captured: "2026-10-19T12:30:00-07:00",
-    trains: [ {min: 1, len: 10, delay: 0}, {min: 21, len: 10, delay: 0}, {min: 41, len: 10, delay: 0} ] };
+  var BART_FALLBACK = { trains: [ {min: 1, len: 10, delay: 0}, {min: 21, len: 10, delay: 0}, {min: 41, len: 10, delay: 0} ] };
   var BIKE_FALLBACK = { num_bikes_available: 7, num_ebikes_available: 2, last_reported: 1792438200 };
+  var WX_FALLBACK = { slots: [ {temp: 55, code: 3, precip: 0}, {temp: 62, code: 3, precip: 0} ] };
 
   var bikeReportedTs = null, sandboxFlagged = false, firstLoad = true;
   var $ = function (id) { return document.getElementById(id); };
   function fmtAgo(sec) { if (sec == null) return ""; var s = Math.max(0, Math.floor(sec)); if (s < 60) return s + "s ago"; var m = Math.floor(s / 60); if (m < 60) return m + " min ago"; return Math.floor(m / 60) + "h ago"; }
   function flagSandbox() { if (!sandboxFlagged) { sandboxFlagged = true; $("sandboxBanner").hidden = false; } }
+
+  /* ---- WEATHER ---- */
+  var WX_ICONS = {
+    clear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"/></svg>',
+    partly: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="7.5" r="3"/><path d="M8 1.6v1.3M2.6 7.5H1.3M4.1 3.6 3.2 2.7M12.8 3.6l.9-.9"/><path d="M7 20h9a3.5 3.5 0 0 0 .3-7A4.5 4.5 0 0 0 8 11.3 3.6 3.6 0 0 0 7 20z"/></svg>',
+    cloud: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h9a4 4 0 0 0 .4-8A5 5 0 0 0 7 8.5 3.8 3.8 0 0 0 7 18z"/></svg>',
+    fog: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5h11a3.4 3.4 0 0 0 .3-6.8A4.8 4.8 0 0 0 7.5 4.6"/><path d="M4 16.5h13M6 20.5h10"/></svg>',
+    rain: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 15h9a4 4 0 0 0 .4-8A5 5 0 0 0 7 5.5 3.8 3.8 0 0 0 7 15z"/><path d="M8 18l-1 2.5M12 18l-1 2.5M16 18l-1 2.5"/></svg>',
+    snow: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 15h9a4 4 0 0 0 .4-8A5 5 0 0 0 7 5.5 3.8 3.8 0 0 0 7 15z"/><path d="M9 19h.01M12 20.5h.01M15 19h.01"/></svg>',
+    thunder: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 14h9a4 4 0 0 0 .4-8A5 5 0 0 0 7 4.5 3.8 3.8 0 0 0 7 14z"/><path d="M12 15l-2 3.5h3L11 22"/></svg>'
+  };
+  var WX_COLOR = { clear: "var(--warn)", partly: "var(--warn)", cloud: "var(--muted)", fog: "var(--muted)", rain: "var(--rain)", snow: "var(--rain)", thunder: "var(--warn)" };
+  function wxInfo(code) {
+    if (code <= 1) return { k: "clear", label: code === 0 ? "Clear" : "Mostly clear" };
+    if (code === 2) return { k: "partly", label: "Partly cloudy" };
+    if (code === 3) return { k: "cloud", label: "Overcast" };
+    if (code === 45 || code === 48) return { k: "fog", label: "Fog" };
+    if ((code >= 71 && code <= 77) || code === 85 || code === 86) return { k: "snow", label: "Snow" };
+    if (code >= 95) return { k: "thunder", label: "Storms" };
+    if (code >= 51) return { k: "rain", label: code >= 80 ? "Showers" : "Rain" };
+    return { k: "cloud", label: "Cloudy" };
+  }
+  var WX_LABELS = ["7 AM", "4 PM"];
+  function renderWeather(slots, source) {
+    var html = "";
+    slots.forEach(function (s, i) {
+      var info = wxInfo(s.code), color = WX_COLOR[info.k] || "var(--muted)";
+      var precip = (s.precip != null && s.precip >= 20) ? " · " + s.precip + "% rain" : "";
+      html += '<div class="wx-slot"><span class="wx-ico" style="color:' + color + '">' + WX_ICONS[info.k] + '</span>' +
+        '<div class="wx-text"><div class="wx-when">' + WX_LABELS[i] + '</div>' +
+        '<div class="wx-temp tnum">' + Math.round(s.temp) + '°</div>' +
+        '<div class="wx-desc">' + info.label + precip + '</div></div></div>';
+    });
+    $("wx").innerHTML = html;
+    var dot = $("wxDot"), live = $("wxLive"); dot.className = "dot";
+    if (source === "fallback") { dot.classList.add("err"); live.textContent = "snapshot"; flagSandbox(); }
+    else { live.textContent = "today's forecast"; }
+  }
+  function loadWeather() {
+    return fetch(WX_URL, { cache: "no-store" }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (j) {
+        var h = j.hourly, t = h.time, slots = [];
+        ["07:00", "16:00"].forEach(function (hh) {
+          for (var i = 0; i < t.length; i++) {
+            if (t[i].slice(11, 16) === hh) {
+              slots.push({ temp: h.temperature_2m[i], code: h.weather_code[i], precip: h.precipitation_probability ? h.precipitation_probability[i] : null });
+              break;
+            }
+          }
+        });
+        if (slots.length < 2) throw new Error("hours missing");
+        renderWeather(slots, "live"); return true;
+      });
+  }
 
   /* ---- BART ---- */
   function renderTrains(mins, delays, lens, source, apiTime) {
@@ -260,12 +339,15 @@
   function refresh(manual) {
     var btn = $("refreshBtn");
     if (manual) { btn.classList.add("spin"); btn.disabled = true; }
-    loadBart().catch(function () { if (firstLoad) bartFallback(); else bartStale(); });
+    var wasFirst = firstLoad; firstLoad = false;
+
+    loadWeather().catch(function () { if (wasFirst) renderWeather(WX_FALLBACK.slots, "fallback"); });
+    loadBart().catch(function () { if (wasFirst) bartFallback(); else bartStale(); });
     loadBikes().catch(function () {
-      if (firstLoad) renderBikes(BIKE_FALLBACK, "fallback");
+      if (wasFirst) renderBikes(BIKE_FALLBACK, "fallback");
       else { var d = $("bikeDot"); d.className = "dot stale"; $("bikeLive").textContent = "reconnecting…"; }
     });
-    firstLoad = false;
+
     if (manual) setTimeout(function () { btn.classList.remove("spin"); btn.disabled = false; }, 450);
   }
 
