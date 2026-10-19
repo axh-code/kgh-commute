@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Live SF commute board: Red Line eastbound at Montgomery BART plus Bay Wheels bikes at the 18th Ave dock.">
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<style>html{color-scheme:light}:root{padding-top:env(safe-area-inset-top,0);padding-bottom:env(safe-area-inset-bottom,0)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Bikes &amp; BART</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&family=Space+Mono:wght@400;700&display=swap">
+<style>
+  /* Layout: a personal commute board — eastbound BART at Montgomery up top, then bikes at the 18th Ave dock */
+  :root {
+    --bg: #eef1ef;
+    --panel: #ffffff;
+    --panel-2: #f6f8f7;
+    --ink: #11201e;
+    --muted: #5a6b68;
+    --hair: #d7ded9;
+    --accent: #0a7c78;      /* Bay Wheels teal */
+    --accent-ink: #054c49;
+    --classic: #0a7c78;     /* teal — pedal bikes */
+    --ebike: #c6471f;       /* burnt orange — electric */
+    --broken: #8a9794;      /* grey — disabled */
+    --empty: #dbe2de;       /* open dock track */
+    --bart-red: #d33a2c;    /* BART Red Line */
+    --good: #178a4c;
+    --warn: #b7791f;
+    --bad: #c23b3b;
+    --shadow: 0 1px 2px rgba(17,32,30,.06), 0 8px 28px rgba(17,32,30,.07);
+    --mono: "Space Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+    --body: "Barlow", system-ui, -apple-system, sans-serif;
+    --display: "Barlow Condensed", "Barlow", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0c1413;
+      --panel: #132220;
+      --panel-2: #0f1b1a;
+      --ink: #eaf2ef;
+      --muted: #8ba39e;
+      --hair: #223733;
+      --accent: #2bb7af;
+      --accent-ink: #9fe8e2;
+      --classic: #2bb7af;
+      --ebike: #f5774a;
+      --broken: #536661;
+      --empty: #1c2e2b;
+      --bart-red: #f0564a;
+      --good: #35c472;
+      --warn: #e0a94a;
+      --bad: #f06a6a;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.45);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0c1413;
+    --panel: #132220;
+    --panel-2: #0f1b1a;
+    --ink: #eaf2ef;
+    --muted: #8ba39e;
+    --hair: #223733;
+    --accent: #2bb7af;
+    --accent-ink: #9fe8e2;
+    --classic: #2bb7af;
+    --ebike: #f5774a;
+    --broken: #536661;
+    --empty: #1c2e2b;
+    --bart-red: #f0564a;
+    --good: #35c472;
+    --warn: #e0a94a;
+    --bad: #f06a6a;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.45);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--body);
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 640px;
+    margin: 0 auto;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 26px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .tnum { font-variant-numeric: tabular-nums; }
+
+  /* Header */
+  header { display: flex; flex-direction: column; gap: 6px; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .eyebrow .sys { color: var(--muted); }
+  h1 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(36px, 10vw, 52px);
+    line-height: .95;
+    margin: 0;
+    letter-spacing: .005em;
+    text-wrap: balance;
+  }
+  .sub { color: var(--muted); font-size: 14px; }
+
+  /* Sandbox banner */
+  .banner {
+    background: var(--panel-2); border: 1px solid var(--hair);
+    border-left: 3px solid var(--warn); border-radius: 10px;
+    padding: 11px 13px; font-size: 13px; color: var(--muted); line-height: 1.5;
+  }
+  .banner b { color: var(--ink); }
+  .banner[hidden] { display: none; }
+
+  /* Shared panel */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--hair);
+    border-radius: 16px;
+    padding: 18px;
+    box-shadow: var(--shadow);
+    display: flex; flex-direction: column; gap: 14px;
+    min-width: 0;
+  }
+  .phead { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .phead .where { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .phead .title {
+    font-family: var(--display); font-weight: 700; font-size: 23px; line-height: 1.02;
+    display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+  }
+  .phead .loc { font-size: 13px; color: var(--muted); }
+  .line-badge {
+    font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .04em;
+    color: #fff; background: var(--bart-red); padding: 3px 8px; border-radius: 6px;
+    text-transform: uppercase; white-space: nowrap;
+  }
+
+  /* Live indicator */
+  .live { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--good); }
+  .dot.beat { animation: beat 2.2s ease-out infinite; }
+  @keyframes beat {
+    0% { box-shadow: 0 0 0 0 rgba(23,138,76,.45); }
+    70% { box-shadow: 0 0 0 9px rgba(23,138,76,0); }
+    100% { box-shadow: 0 0 0 0 rgba(23,138,76,0); }
+  }
+  .dot.stale { background: var(--warn); }
+  .dot.err { background: var(--bad); }
+  @media (prefers-reduced-motion: reduce) { .dot.beat { animation: none; } }
+
+  /* Summary sentence */
+  .say { font-size: 16px; line-height: 1.4; }
+  .say b { font-weight: 700; }
+  .say .em { font-family: var(--display); font-weight: 700; }
+
+  /* BART train times */
+  .trains { display: flex; gap: 10px; flex-wrap: wrap; }
+  .train {
+    flex: 1 1 0; min-width: 92px;
+    background: var(--panel-2); border: 1px solid var(--hair); border-radius: 12px;
+    padding: 12px 12px 11px; display: flex; flex-direction: column; gap: 2px;
+  }
+  .train.next { border-color: var(--bart-red); box-shadow: inset 0 0 0 1px var(--bart-red); }
+  .train .rank { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .train .mins { font-family: var(--display); font-weight: 700; font-size: 40px; line-height: .9; }
+  .train .unit { font-size: 13px; color: var(--muted); }
+  .train .meta { font-size: 11px; color: var(--muted); margin-top: 3px; font-variant-numeric: tabular-nums; }
+  .train .meta .late { color: var(--warn); }
+  .train.leaving .mins { font-size: 26px; color: var(--bart-red); }
+
+  /* Hero bike tiles */
+  .hero { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .tile {
+    background: var(--panel-2);
+    border: 1px solid var(--hair);
+    border-radius: 14px;
+    padding: 16px;
+    display: flex; flex-direction: column; gap: 4px;
+    min-width: 0;
+  }
+  .tile .cap { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .big { font-family: var(--display); font-weight: 700; font-size: clamp(48px, 15vw, 68px); line-height: .85; letter-spacing: -.01em; }
+  .big.good { color: var(--good); }
+  .big.warn { color: var(--warn); }
+  .big.bad  { color: var(--bad); }
+  .tile .split { display: flex; gap: 14px; margin-top: 8px; flex-wrap: wrap; font-size: 14px; }
+  .split .k { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); }
+  .split .k b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .swatch { width: 11px; height: 11px; border-radius: 3px; flex: none; }
+  .sw-classic { background: var(--classic); }
+  .sw-ebike { background: var(--ebike); }
+
+  /* Capacity bar */
+  .caprow { display: flex; flex-direction: column; gap: 10px; }
+  .caplabel { font-family: var(--mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; align-items: baseline; }
+  .caplabel .t { color: var(--ink); font-size: 12px; }
+  .bar { display: flex; height: 26px; border-radius: 8px; overflow: hidden; background: var(--empty); gap: 2px; }
+  .seg { height: 100%; min-width: 0; transition: width .5s cubic-bezier(.4,0,.2,1); }
+  .seg.classic { background: var(--classic); }
+  .seg.ebike { background: var(--ebike); }
+  .seg.broken { background: var(--broken); background-image: repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(255,255,255,.22) 4px, rgba(255,255,255,.22) 8px); }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; }
+  .legend .k { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); }
+  .legend .k b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .sw-broken { background: var(--broken); }
+  .sw-empty { background: var(--empty); border: 1px solid var(--hair); }
+
+  /* Status chips */
+  .status-strip { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; padding: 7px 12px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--hair); }
+  .chip .ic { width: 8px; height: 8px; border-radius: 50%; background: var(--good); flex: none; }
+  .chip.off .ic { background: var(--bad); }
+  .chip b { font-weight: 600; }
+
+  /* Controls */
+  .controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  button.refresh { font-family: var(--body); font-size: 14px; font-weight: 600; color: #fff; background: var(--accent); border: none; padding: 10px 16px; border-radius: 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+  button.refresh:hover { filter: brightness(1.06); }
+  button.refresh:active { transform: translateY(1px); }
+  button.refresh:disabled { opacity: .55; cursor: default; }
+  button.refresh:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+  .refresh svg { width: 15px; height: 15px; }
+  .refresh.spin svg { animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .maplink { color: var(--accent-ink); font-weight: 600; font-size: 14px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+  .maplink:hover { text-decoration: underline; }
+
+  footer { color: var(--muted); font-size: 12px; line-height: 1.6; }
+  footer a { color: var(--accent-ink); }
+
+  @media (max-width: 440px) {
+    .hero { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow"><span>Richmond District → Downtown</span><span class="sys">· San Francisco</span></div>
+    <h1>Bikes &amp; BART</h1>
+    <div class="sub">Grab a bike at 18th Ave, catch the Red Line at Montgomery.</div>
+  </header>
+
+  <div class="banner" id="sandboxBanner" hidden>
+    <b>Preview note:</b> the claude.ai sandbox blocks outside data, so times below are a saved snapshot.
+    Host this page on any web server and both feeds go fully live.
+  </div>
+
+  <!-- BART -->
+  <section class="panel">
+    <div class="phead">
+      <div class="where">
+        <div class="title"><span class="line-badge">Red Line</span> Eastbound</div>
+        <div class="loc">Montgomery St · toward Richmond · Platform 2</div>
+      </div>
+      <div class="live"><span class="dot beat" id="bartDot"></span><span id="bartLive">Loading…</span></div>
+    </div>
+    <div class="say" id="bartSay">Checking the next trains…</div>
+    <div class="trains" id="trains"></div>
+  </section>
+
+  <!-- BIKES -->
+  <section class="panel">
+    <div class="phead">
+      <div class="where">
+        <div class="title">18th Ave at California St</div>
+        <div class="loc">Bay Wheels dock · Richmond District · <span class="tnum">SF-F9</span></div>
+      </div>
+      <div class="live"><span class="dot beat" id="bikeDot"></span><span id="bikeLive">Loading…</span></div>
+    </div>
+
+    <div class="say" id="bikeSay">Checking the dock…</div>
+
+    <div class="hero">
+      <div class="tile">
+        <span class="cap">Bikes to ride</span>
+        <span class="big" id="bikesBig">–</span>
+        <div class="split">
+          <span class="k"><span class="swatch sw-classic"></span>Classic <b id="classicN">–</b></span>
+          <span class="k"><span class="swatch sw-ebike"></span>E-bike <b id="ebikeN">–</b></span>
+        </div>
+      </div>
+      <div class="tile">
+        <span class="cap">Open docks</span>
+        <span class="big" id="docksBig">–</span>
+        <div class="split"><span class="k">of <b id="capN">23</b> total</span></div>
+      </div>
+    </div>
+
+    <div class="caprow">
+      <div class="caplabel">Dock capacity <span class="t tnum" id="capLabel">23 docks</span></div>
+      <div class="bar" role="img" aria-label="Dock capacity breakdown">
+        <div class="seg classic" id="segClassic" style="width:0"></div>
+        <div class="seg ebike" id="segEbike" style="width:0"></div>
+        <div class="seg broken" id="segBroken" style="width:0"></div>
+      </div>
+      <div class="legend">
+        <span class="k"><span class="swatch sw-classic"></span>Classic <b id="legClassic">–</b></span>
+        <span class="k"><span class="swatch sw-ebike"></span>E-bike <b id="legEbike">–</b></span>
+        <span class="k"><span class="swatch sw-broken"></span>Broken <b id="legBroken">–</b></span>
+        <span class="k"><span class="swatch sw-empty"></span>Open <b id="legEmpty">–</b></span>
+      </div>
+    </div>
+
+    <div class="status-strip">
+      <span class="chip" id="chipInstalled"><span class="ic"></span>Station <b>online</b></span>
+      <span class="chip" id="chipRenting"><span class="ic"></span><b>Renting</b></span>
+      <span class="chip" id="chipReturning"><span class="ic"></span><b>Returns</b></span>
+    </div>
+  </section>
+
+  <div class="controls">
+    <button class="refresh" id="refreshBtn" aria-label="Refresh now">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+      <span>Refresh</span>
+    </button>
+    <a class="maplink" href="https://maps.google.com/?q=37.785111,-122.477667" target="_blank" rel="noopener">
+      Dock in Maps
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>
+    </a>
+  </div>
+
+  <footer>
+    Trains from the <a href="https://api.bart.gov" target="_blank" rel="noopener">BART real-time API</a>;
+    bikes from the <a href="https://gbfs.lyft.com/gbfs/1.1/bay/en/gbfs.json" target="_blank" rel="noopener">Bay Wheels GBFS feed</a>.
+    Auto-refreshes every 45&nbsp;seconds. The Red Line runs roughly 5&nbsp;am–9&nbsp;pm on weekdays; outside those hours the
+    Orange Line also serves Richmond. Counts can lag real life by a minute or two.
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- config ---------- */
+  var BART_KEY = "MW9S-E7SL-26DU-VV8V";             // BART's public API key
+  var BART_URL = "https://api.bart.gov/api/etd.aspx?cmd=etd&orig=MONT&key=" + BART_KEY + "&json=y";
+  var BART_LINE = "RED";
+  var BART_DIR = "North";                            // eastbound toward Richmond
+
+  var STATION_ID = "37cf6b02-5cb0-4461-bf45-0ae60a1a2fb7";
+  var INFO_URL = "https://gbfs.lyft.com/gbfs/1.1/bay/en/station_information.json";
+  var STATUS_URL = "https://gbfs.lyft.com/gbfs/1.1/bay/en/station_status.json";
+
+  var REFRESH_MS = 45000;
+
+  /* ---------- baked snapshots (shown if a feed can't be reached) ---------- */
+  var BART_FALLBACK = { captured: "2026-10-19T09:50:00-07:00",
+    trains: [ {min: 1, len: 10, delay: 100}, {min: 18, len: 10, delay: 0}, {min: 38, len: 10, delay: 0} ] };
+  var BIKE_FALLBACK = { captured: "2026-10-19T09:43:00-07:00", capacity: 23,
+    num_bikes_available: 6, num_ebikes_available: 0, num_bikes_disabled: 2,
+    num_docks_available: 15, is_installed: 1, is_renting: 1, is_returning: 1, last_reported: 1792428188 };
+
+  var capacity = 23;
+  var bikeReportedTs = null;
+  var sandboxFlagged = false;
+
+  var $ = function (id) { return document.getElementById(id); };
+  function sevClass(n) { return n === 0 ? "bad" : (n <= 3 ? "warn" : "good"); }
+  function fmtAgo(sec) {
+    if (sec == null) return "";
+    var s = Math.max(0, Math.floor(sec));
+    if (s < 60) return s + "s ago";
+    var m = Math.floor(s / 60);
+    if (m < 60) return m + " min ago";
+    return Math.floor(m / 60) + "h ago";
+  }
+  function flagSandbox() {
+    if (sandboxFlagged) return;
+    sandboxFlagged = true;
+    $("sandboxBanner").hidden = false;
+  }
+
+  /* ---------- BART ---------- */
+  function renderTrains(mins, delays, lens, source, apiTime) {
+    var box = $("trains");
+    box.innerHTML = "";
+    var ranks = ["Next", "Then", "After"];
+    if (!mins.length) {
+      box.innerHTML = '<div class="train"><div class="rank">Red Line</div><div class="unit" style="margin-top:6px">No eastbound trains estimated right now — try the Orange Line.</div></div>';
+      $("bartSay").innerHTML = "No Red Line trains to Richmond right now.";
+    } else {
+      for (var i = 0; i < Math.min(3, mins.length); i++) {
+        var m = mins[i], leaving = (m === 0);
+        var late = delays && delays[i] >= 60 ? Math.round(delays[i] / 60) : 0;
+        var el = document.createElement("div");
+        el.className = "train" + (i === 0 ? " next" : "") + (leaving ? " leaving" : "");
+        el.innerHTML =
+          '<div class="rank">' + ranks[i] + '</div>' +
+          (leaving
+             ? '<div class="mins">Leaving</div>'
+             : '<div class="mins tnum">' + m + '<span class="unit"> min</span></div>') +
+          '<div class="meta">' + (lens && lens[i] ? lens[i] + '-car' : '') +
+            (late ? ' · <span class="late">' + late + ' min late</span>' : '') + '</div>';
+        box.appendChild(el);
+      }
+      // plain-language summary
+      var parts = mins.slice(0, 3).map(function (m) { return m === 0 ? "leaving now" : m + " min"; });
+      var say = "Next eastbound train " + (mins[0] === 0 ? "is " + parts[0] : "in " + parts[0]);
+      if (parts[1]) say += ", then " + (parts[1].indexOf("min") >= 0 ? parts[1].replace(" min", "") : parts[1]);
+      if (parts[2]) say += ", then " + (parts[2].indexOf("min") >= 0 ? parts[2].replace(" min", "") : parts[2]);
+      say += mins.length > 1 ? " min." : ".";
+      $("bartSay").innerHTML = '<span class="em">' + say + '</span>';
+    }
+
+    var dot = $("bartDot"), live = $("bartLive");
+    dot.className = "dot";
+    if (source === "fallback") { dot.classList.add("err"); live.textContent = "snapshot " + fmtClock(BART_FALLBACK.captured); flagSandbox(); }
+    else if (source === "stale") { dot.classList.add("stale"); live.textContent = "reconnecting…"; }
+    else { dot.classList.add("beat"); live.textContent = "live · " + (apiTime || ""); }
+  }
+
+  function fmtClock(iso) {
+    try { return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); }
+    catch (e) { return ""; }
+  }
+
+  function loadBart() {
+    return fetch(BART_URL, { cache: "no-store" })
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (j) {
+        var root = j.root || {};
+        var station = (root.station || [])[0];
+        if (!station) throw new Error("no station");
+        var mins = [], delays = [], lens = [];
+        (station.etd || []).forEach(function (dest) {
+          (dest.estimate || []).forEach(function (e) {
+            if ((e.color || "").toUpperCase() === BART_LINE && e.direction === BART_DIR) {
+              var m = (e.minutes === "Leaving") ? 0 : parseInt(e.minutes, 10);
+              if (!isNaN(m)) { mins.push(m); delays.push(parseInt(e.delay || "0", 10) || 0); lens.push(e.length); }
+            }
+          });
+        });
+        // sort by soonest, keep aligned arrays
+        var order = mins.map(function (m, i) { return i; }).sort(function (a, b) { return mins[a] - mins[b]; });
+        renderTrains(order.map(function (i) { return mins[i]; }),
+                     order.map(function (i) { return delays[i]; }),
+                     order.map(function (i) { return lens[i]; }),
+                     "live", root.time || "");
+        return true;
+      });
+  }
+
+  function bartFallback() {
+    renderTrains(BART_FALLBACK.trains.map(function (t) { return t.min; }),
+                 BART_FALLBACK.trains.map(function (t) { return t.delay; }),
+                 BART_FALLBACK.trains.map(function (t) { return t.len; }),
+                 "fallback", "");
+  }
+
+  /* ---------- BIKES ---------- */
+  function renderBikes(d, source) {
+    var classic = Math.max(0, (d.num_bikes_available || 0) - (d.num_ebikes_available || 0));
+    var ebike = d.num_ebikes_available || 0;
+    var bikes = d.num_bikes_available || 0;
+    var broken = d.num_bikes_disabled || 0;
+    var openDocks = d.num_docks_available || 0;
+    var cap = capacity || (classic + ebike + broken + openDocks) || 23;
+
+    var bb = $("bikesBig"); bb.textContent = bikes; bb.className = "big " + sevClass(bikes);
+    $("classicN").textContent = classic; $("ebikeN").textContent = ebike;
+    var db = $("docksBig"); db.textContent = openDocks; db.className = "big " + sevClass(openDocks);
+    $("capN").textContent = cap;
+
+    var pct = function (n) { return (cap > 0 ? (n / cap) * 100 : 0).toFixed(2) + "%"; };
+    $("segClassic").style.width = pct(classic);
+    $("segEbike").style.width = pct(ebike);
+    $("segBroken").style.width = pct(broken);
+    $("capLabel").textContent = cap + " docks";
+    $("legClassic").textContent = classic; $("legEbike").textContent = ebike;
+    $("legBroken").textContent = broken; $("legEmpty").textContent = openDocks;
+
+    setChip("chipInstalled", d.is_installed, "Station", "online", "offline");
+    setChip("chipRenting", d.is_renting, null, "Renting", "Not renting");
+    setChip("chipReturning", d.is_returning, null, "Returns", "No returns");
+
+    // plain-language summary, phrased the way you asked
+    $("bikeSay").innerHTML = '<span class="em">' + ebike + " e-bike" + (ebike === 1 ? "" : "s") +
+      " and " + classic + " classic bike" + (classic === 1 ? "" : "s") + "</span> available right now.";
+
+    bikeReportedTs = d.last_reported || null;
+    var dot = $("bikeDot"), live = $("bikeLive");
+    dot.className = "dot";
+    if (source === "fallback") { dot.classList.add("err"); live.textContent = "snapshot " + fmtClock(BIKE_FALLBACK.captured); flagSandbox(); }
+    else if (source === "stale") { dot.classList.add("stale"); live.textContent = "reconnecting…"; }
+    else { dot.classList.add("beat"); updateBikeAgo(); }
+  }
+  function updateBikeAgo() {
+    var live = $("bikeLive"), dot = $("bikeDot");
+    if (!dot.classList.contains("beat")) return;
+    var ago = bikeReportedTs != null ? (Date.now() / 1000 - bikeReportedTs) : null;
+    live.textContent = "live · " + fmtAgo(ago);
+  }
+  function setChip(id, on, prefix, onText, offText) {
+    var el = $(id);
+    el.classList.toggle("off", !on);
+    el.innerHTML = '<span class="ic"></span>' + (prefix ? prefix + " " : "") + "<b>" + (on ? onText : offText) + "</b>";
+  }
+
+  var infoLoaded = false;
+  function loadInfo() {
+    if (infoLoaded) return Promise.resolve();
+    return fetch(INFO_URL, { cache: "no-store" }).then(function (r) { return r.json(); })
+      .then(function (j) {
+        var st = (j.data.stations || []).filter(function (s) { return s.station_id === STATION_ID; })[0];
+        if (st && st.capacity) capacity = st.capacity;
+        infoLoaded = true;
+      }).catch(function () {});
+  }
+  function loadBikes() {
+    return fetch(STATUS_URL, { cache: "no-store" })
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (j) {
+        var st = (j.data.stations || []).filter(function (s) { return s.station_id === STATION_ID; })[0];
+        if (!st) throw new Error("station missing");
+        renderBikes(st, "live");
+        return true;
+      });
+  }
+
+  /* ---------- orchestration ---------- */
+  var firstLoad = true;
+  function refresh(manual) {
+    var btn = $("refreshBtn");
+    if (manual) { btn.classList.add("spin"); btn.disabled = true; }
+
+    loadBart().catch(function () { if (firstLoad) bartFallback(); else renderStaleBart(); });
+
+    var infoP = firstLoad ? loadInfo() : Promise.resolve();
+    infoP.then(loadBikes).catch(function () {
+      if (firstLoad) renderBikes(BIKE_FALLBACK, "fallback");
+      else { var d = $("bikeDot"), l = $("bikeLive"); d.className = "dot stale"; l.textContent = "reconnecting…"; }
+    });
+
+    Promise.resolve().then(function () {
+      firstLoad = false;
+      if (manual) setTimeout(function () { btn.classList.remove("spin"); btn.disabled = false; }, 450);
+    });
+  }
+  function renderStaleBart() { var d = $("bartDot"), l = $("bartLive"); d.className = "dot stale"; l.textContent = "reconnecting…"; }
+
+  $("refreshBtn").addEventListener("click", function () { refresh(true); });
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) refresh(false); });
+  setInterval(updateBikeAgo, 1000);
+  setInterval(function () { if (!document.hidden) refresh(false); }, REFRESH_MS);
+  refresh(false);
+})();
+</script>
+</body>
+</html>
