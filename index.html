@@ -164,7 +164,7 @@
 
     <div class="panel">
       <section class="pane">
-        <div class="pane-head"><span class="pane-title">Commute</span><span class="pane-sub">30 min to BART · 35 after</span></div>
+        <div class="pane-head"><span class="pane-title" id="commuteTitle">Commute</span><span class="pane-sub" id="commuteSub">30 min to BART · 35 after</span></div>
         <div class="cells c3">
           <div class="cell"><div class="kick">Leave in</div><div class="num" id="leaveIn">–</div></div>
           <div class="cell"><div class="kick">Arrive at</div><div class="num" id="arriveAt">–</div></div>
@@ -175,27 +175,26 @@
       <div class="divider"></div>
 
       <section class="pane">
-        <div class="pane-head"><span class="pane-title">Red Line Eastbound from Montgomery</span></div>
+        <div class="pane-head"><span class="pane-title" id="trainTitle">Red Line Eastbound from Montgomery</span></div>
         <div class="cells c3" id="trains"></div>
       </section>
 
       <div class="divider"></div>
 
       <section class="pane">
-        <div class="pane-head"><span class="pane-title">18th Ave at California</span><span class="pane-sub">Bay Wheels</span></div>
-        <div class="cells c2">
-          <div class="cell"><div class="kick">E-bikes</div><div class="num" id="ebikeBig">–</div></div>
-          <div class="cell"><div class="kick">Regular</div><div class="num" id="classicBig">–</div></div>
-        </div>
+        <div class="pane-head"><span class="pane-title" id="bikeTitle">18th Ave at California</span><span class="pane-sub">Bay Wheels</span></div>
+        <div class="cells c2" id="bikes"></div>
       </section>
 
       <div class="divider"></div>
 
       <section class="pane">
-        <div class="pane-head"><span class="pane-title">Weather</span><span class="pane-sub">San Francisco</span></div>
+        <div class="pane-head"><span class="pane-title">Weather</span><span class="pane-sub">San Francisco · Berkeley</span></div>
         <div class="cells c2">
           <div class="cell" id="wx0"></div>
           <div class="cell" id="wx1"></div>
+          <div class="cell" id="wx2"></div>
+          <div class="cell" id="wx3"></div>
         </div>
       </section>
     </div>
@@ -212,19 +211,39 @@
   "use strict";
 
   var BART_KEY = "MW9S-E7SL-26DU-VV8V";
-  var BART_URL = "https://api.bart.gov/api/etd.aspx?cmd=etd&orig=MONT&key=" + BART_KEY + "&json=y";
-  var BART_LINE = "RED", BART_DIR = "North";
-  var STATION_ID = "37cf6b02-5cb0-4461-bf45-0ae60a1a2fb7";
+  var BART_LINE = "RED";
   var STATUS_URL = "https://gbfs.lyft.com/gbfs/1.1/bay/en/station_status.json";
-  var WX_URL = "https://api.open-meteo.com/v1/forecast?latitude=37.7749&longitude=-122.4194&hourly=temperature_2m,weather_code,precipitation_probability&temperature_unit=fahrenheit&timezone=America/Los_Angeles&forecast_days=1";
+  var WX_URL = "https://api.open-meteo.com/v1/forecast?latitude=37.7749,37.8742&longitude=-122.4194,-122.3021&hourly=temperature_2m,weather_code,precipitation_probability&temperature_unit=fahrenheit&timezone=America/Los_Angeles&forecast_days=1";
   var REFRESH_MS = 45000;
 
+  /* Before noon (Pacific) it's the commute to work; from noon on, the commute home. ?mode=work|home forces one. */
+  var MODES = {
+    work: {
+      title: "Commute", toBart: 30, afterBart: 35,
+      orig: "MONT", dir: "North", trainTitle: "Red Line Eastbound from Montgomery",
+      noTrains: "No eastbound trains right now — try the Orange Line.",
+      bikeTitle: "18th Ave at California",
+      docks: [ {id:"37cf6b02-5cb0-4461-bf45-0ae60a1a2fb7"} ],
+      bikeFallback: [ {num_bikes_available:7, num_ebikes_available:2, last_reported:1792438200} ]
+    },
+    home: {
+      title: "Commute home", toBart: 15, afterBart: 50,
+      orig: "NBRK", dir: "South", trainTitle: "Red Line to SF from North Berkeley",
+      noTrains: "No Red Line trains to SF right now — take Orange and transfer at MacArthur.",
+      bikeTitle: "Near 4th & Cedar",
+      docks: [ {id:"2207522891867018436", name:"James Kenney Park"}, {id:"08f875e7-d696-4a4d-9656-43f07a953de4", name:"5th & Delaware"} ],
+      bikeFallback: [ {num_bikes_available:16, num_ebikes_available:5, last_reported:1792438200}, {num_bikes_available:10, num_ebikes_available:0, last_reported:1792438200} ]
+    }
+  };
+  var forcedMode = (location.search.match(/[?&]mode=(work|home)\b/) || [])[1] || null;
+  function pacificHour(){ return parseInt(new Intl.DateTimeFormat("en-US",{timeZone:"America/Los_Angeles",hour:"numeric",hourCycle:"h23"}).format(new Date()),10); }
+  function currentModeKey(){ return forcedMode || (pacificHour() >= 12 ? "home" : "work"); }
+
   var BART_FALLBACK = { trains: [ {min:1,len:10,delay:0}, {min:21,len:10,delay:0}, {min:41,len:10,delay:0} ] };
-  var BIKE_FALLBACK = { num_bikes_available: 7, num_ebikes_available: 2, last_reported: 1792438200 };
-  var WX_FALLBACK = { slots: [ {temp:55,code:3,precip:0}, {temp:62,code:3,precip:0} ] };
+  var WX_FALLBACK = { slots: [ {temp:55,code:3,precip:0}, {temp:62,code:3,precip:0}, {temp:57,code:3,precip:0}, {temp:64,code:2,precip:0} ] };
 
   var bikeReportedTs = null, sandboxFlagged = false, firstLoad = true, liveOk = true, skyOverride = null;
-  var TO_BART_MIN = 30, AFTER_BART_MIN = 35, cMins = null, cEbikes = null, cRainy = false;
+  var modeKey = null, M = null, cMins = null, cEbikes = null, cRainy = false;
   var $ = function (id) { return document.getElementById(id); };
   function fmtAgo(sec){ if(sec==null)return""; var s=Math.max(0,Math.floor(sec)); if(s<60)return s+"s ago"; var m=Math.floor(s/60); if(m<60)return m+" min ago"; return Math.floor(m/60)+"h ago"; }
   function flagSandbox(){ if(!sandboxFlagged){ sandboxFlagged=true; $("sandboxBanner").hidden=false; } }
@@ -251,8 +270,9 @@
     storm:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 14h9a4 4 0 0 0 .4-8A5 5 0 0 0 7 4.5 3.8 3.8 0 0 0 7 14z"/><path d="M12 15l-2 3.5h3L11 22"/></svg>'
   };
   var WX_TINT = { clear:"#c6974a", partly:"#c6974a", cloudy:"var(--muted)", fog:"var(--muted)", rain:"#3f5d6b", snow:"#3f5d6b", storm:"#8a6d3a" };
-  var WX_WHEN = ["7 AM", "4 PM"];
+  var WX_WHEN = ["SF · 7 AM", "SF · 4 PM", "Berkeley · 7 AM", "Berkeley · 4 PM"];
 
+  /* slots: SF 7a, SF 4p, Berkeley 7a, Berkeley 4p — sky + rain status take the worst of all four */
   function renderWeather(slots){
     var worst = null;
     slots.forEach(function(s,i){
@@ -272,11 +292,14 @@
   function loadWeather(){
     return fetch(WX_URL,{cache:"no-store"}).then(function(r){ if(!r.ok)throw new Error(r.status); return r.json(); })
       .then(function(j){
-        var h=j.hourly, t=h.time, slots=[];
-        ["07:00","16:00"].forEach(function(hh){
-          for(var i=0;i<t.length;i++){ if(t[i].slice(11,16)===hh){ slots.push({temp:h.temperature_2m[i], code:h.weather_code[i], precip:h.precipitation_probability?h.precipitation_probability[i]:null}); break; } }
+        var slots=[];
+        (Array.isArray(j)?j:[j]).forEach(function(loc){
+          var h=loc.hourly, t=h.time;
+          ["07:00","16:00"].forEach(function(hh){
+            for(var i=0;i<t.length;i++){ if(t[i].slice(11,16)===hh){ slots.push({temp:h.temperature_2m[i], code:h.weather_code[i], precip:h.precipitation_probability?h.precipitation_probability[i]:null}); break; } }
+          });
         });
-        if(slots.length<2) throw new Error("hours");
+        if(slots.length<4) throw new Error("hours");
         renderWeather(slots); return true;
       });
   }
@@ -318,7 +341,7 @@
     var box=$("trains"); box.innerHTML="";
     var ranks=["Next","Then","After"];
     if(!mins.length){
-      box.innerHTML='<div class="cell train-cell"><div class="kick">Red Line</div><div class="sub">No eastbound trains right now — try the Orange Line.</div></div>';
+      box.innerHTML='<div class="cell train-cell" style="grid-column:1/-1"><div class="kick">Red Line</div><div class="sub">'+M.noTrains+'</div></div>';
     } else {
       for(var i=0;i<Math.min(3,mins.length);i++){
         var m=mins[i], leaving=(m===0);
@@ -333,13 +356,14 @@
     cMins = mins.slice(); computeCommute();
   }
   function loadBart(){
-    return fetch(BART_URL,{cache:"no-store"}).then(function(r){ if(!r.ok)throw new Error(r.status); return r.json(); })
+    var url="https://api.bart.gov/api/etd.aspx?cmd=etd&orig="+M.orig+"&key="+BART_KEY+"&json=y";
+    return fetch(url,{cache:"no-store"}).then(function(r){ if(!r.ok)throw new Error(r.status); return r.json(); })
       .then(function(j){
         var root=j.root||{}, station=(root.station||[])[0];
         if(!station) throw new Error("no station");
         var mins=[],delays=[],lens=[];
         (station.etd||[]).forEach(function(dest){ (dest.estimate||[]).forEach(function(e){
-          if((e.color||"").toUpperCase()===BART_LINE && e.direction===BART_DIR){
+          if((e.color||"").toUpperCase()===BART_LINE && e.direction===M.dir){
             var m=(e.minutes==="Leaving")?0:parseInt(e.minutes,10);
             if(!isNaN(m)){ mins.push(m); delays.push(parseInt(e.delay||"0",10)||0); lens.push(e.length); }
           }
@@ -352,20 +376,47 @@
   function bartFallback(){ renderTrains(BART_FALLBACK.trains.map(function(t){return t.min;}),BART_FALLBACK.trains.map(function(t){return t.delay;}),BART_FALLBACK.trains.map(function(t){return t.len;})); }
 
   /* ---- BIKES ---- */
-  function renderBikes(d){
-    var ebike=d.num_ebikes_available||0;
-    var classic=Math.max(0,(d.num_bikes_available||0)-ebike);
-    $("ebikeBig").textContent=ebike; $("classicBig").textContent=classic;
-    bikeReportedTs=d.last_reported||null;
-    cEbikes=ebike; computeCommute();
+  /* one dock: E-bikes | Regular cells. several docks: one cell per dock, e-bikes big, regular below. */
+  function renderBikes(list){
+    var box=$("bikes"), total=0, ts=null;
+    box.innerHTML="";
+    list.forEach(function(d,i){
+      var ebike=d.num_ebikes_available||0;
+      var classic=Math.max(0,(d.num_bikes_available||0)-ebike);
+      total+=ebike;
+      if(d.last_reported && (ts==null || d.last_reported<ts)) ts=d.last_reported;
+      if(list.length===1){
+        box.innerHTML='<div class="cell"><div class="kick">E-bikes</div><div class="num">'+ebike+'</div></div>'+
+                      '<div class="cell"><div class="kick">Regular</div><div class="num">'+classic+'</div></div>';
+      } else {
+        box.insertAdjacentHTML("beforeend",'<div class="cell"><div class="kick">'+M.docks[i].name+'</div>'+
+          '<div class="num">'+ebike+'<span class="unit">e-bikes</span></div><div class="sub">'+classic+' regular</div></div>');
+      }
+    });
+    bikeReportedTs=ts;
+    cEbikes=total; computeCommute();
   }
   function loadBikes(){
     return fetch(STATUS_URL,{cache:"no-store"}).then(function(r){ if(!r.ok)throw new Error(r.status); return r.json(); })
       .then(function(j){
-        var st=(j.data.stations||[]).filter(function(s){return s.station_id===STATION_ID;})[0];
-        if(!st) throw new Error("missing");
-        renderBikes(st); return true;
+        var byId={}; (j.data.stations||[]).forEach(function(s){ byId[s.station_id]=s; });
+        var list=M.docks.map(function(dk){ return byId[dk.id]; });
+        if(list.some(function(s){return !s;})) throw new Error("missing");
+        renderBikes(list); return true;
       });
+  }
+
+  /* ---- mode (to work / home) ---- */
+  function applyMode(){
+    var k=currentModeKey();
+    if(k===modeKey) return false;
+    modeKey=k; M=MODES[k]; cMins=null; cEbikes=null;
+    $("commuteTitle").textContent=M.title;
+    $("commuteSub").textContent=M.toBart+" min to BART · "+M.afterBart+" after";
+    $("trainTitle").textContent=M.trainTitle;
+    $("bikeTitle").textContent=M.bikeTitle;
+    bartFallback(); renderBikes(M.bikeFallback);
+    return true;
   }
 
   /* ---- commute countdown ---- */
@@ -375,11 +426,11 @@
     if(!el) return;
     if(cMins && cMins.length){
       var chosen=null, i;
-      for(i=0;i<cMins.length;i++){ if(cMins[i]>=TO_BART_MIN){ chosen=cMins[i]; break; } }
+      for(i=0;i<cMins.length;i++){ if(cMins[i]>=M.toBart){ chosen=cMins[i]; break; } }
       if(chosen==null) chosen=cMins[cMins.length-1];
-      var leave=Math.max(0, chosen-TO_BART_MIN);
+      var leave=Math.max(0, chosen-M.toBart);
       el.innerHTML = leave===0 ? "Now" : leave+'<span class="unit">min</span>';
-      var arr=new Date(Date.now()+(chosen+AFTER_BART_MIN)*60000);
+      var arr=new Date(Date.now()+(chosen+M.afterBart)*60000);
       var h=arr.getHours(), m=arr.getMinutes(), ap=h>=12?"pm":"am", h12=((h+11)%12)+1;
       ea.innerHTML = h12+":"+pad2(m)+'<span class="unit">'+ap+'</span>';
     } else { el.textContent="–"; ea.textContent="–"; }
@@ -399,6 +450,7 @@
   function refresh(){
     var wasFirst=firstLoad; firstLoad=false;
     var ok=true;
+    applyMode();
     loadWeather().catch(function(){ ok=false; });
     loadBart().catch(function(){ ok=false; });
     loadBikes().catch(function(){ ok=false; })
@@ -410,10 +462,10 @@
   }
 
   canvas=$("wxcanvas"); ctx=canvas.getContext("2d"); sizeCanvas();
-  renderWeather(WX_FALLBACK.slots); bartFallback(); renderBikes(BIKE_FALLBACK); setStatus("live","loading…");
+  applyMode(); renderWeather(WX_FALLBACK.slots); setStatus("live","loading…");
   var rsz; window.addEventListener("resize", function(){ clearTimeout(rsz); rsz=setTimeout(function(){ sizeCanvas(); seed(); }, 200); });
   document.addEventListener("visibilitychange", function(){ if(!document.hidden) refresh(); });
-  setInterval(updateStatus, 1000);
+  setInterval(function(){ updateStatus(); if(applyMode() && !document.hidden) refresh(); }, 1000);
   setInterval(function(){ if(!document.hidden) refresh(); }, REFRESH_MS);
   refresh();
 })();
