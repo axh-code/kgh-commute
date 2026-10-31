@@ -131,7 +131,11 @@
   .csq.wait { background: var(--stop); }
   .cwhy { margin-top: 4px; color: var(--stop); }
 
-  .controls { max-width: 432px; width: 100%; display: flex; align-items: center; gap: 10px; }
+  .controls { max-width: 432px; width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .toggle { display: inline-flex; border: 1px solid #b79a6a; background: var(--paper); }
+  .toggle button { font: inherit; font-size: var(--fs-sub); color: var(--muted); background: none; border: 0; padding: 7px 11px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .toggle button + button { border-left: 1px solid #b79a6a; }
+  .toggle button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
   .status { display: inline-flex; align-items: center; gap: 7px; font-size: var(--fs-sub); color: var(--ink); background: var(--paper); border: 1px solid #b79a6a; padding: 7px 10px; }
   .status .sq { width: 8px; height: 8px; background: var(--live); flex: none; }
   .status .sq.snap { background: var(--snap); }
@@ -203,6 +207,9 @@
 
   <div class="controls">
     <span class="status"><span class="sq" id="statusSq"></span><span id="statusText">loading…</span></span>
+    <span class="toggle" role="group" aria-label="Commute direction">
+      <button type="button" data-mode="work" aria-pressed="false">San Francisco</button><button type="button" data-mode="home" aria-pressed="false">Berkeley</button>
+    </span>
   </div>
 
 </div>
@@ -217,7 +224,8 @@
   var WX_URL = "https://api.open-meteo.com/v1/forecast?latitude=37.7749,37.8742&longitude=-122.4194,-122.3021&hourly=temperature_2m,weather_code,precipitation_probability&temperature_unit=fahrenheit&timezone=America/Los_Angeles&forecast_days=1";
   var REFRESH_MS = 45000;
 
-  /* Before noon (Pacific) it's the commute to work; from noon on, the commute home. ?mode=work|home forces one. */
+  /* Before noon (Pacific) it's San Francisco mode (SF → Berkeley); from noon on, Berkeley mode (Berkeley → SF).
+     The toggle under the frame overrides that until reload; ?mode=work|home forces one. */
   var MODES = {
     work: {
       title: "Commute", toBart: 30, afterBart: 35,
@@ -238,7 +246,8 @@
   };
   var forcedMode = (location.search.match(/[?&]mode=(work|home)\b/) || [])[1] || null;
   function pacificHour(){ return parseInt(new Intl.DateTimeFormat("en-US",{timeZone:"America/Los_Angeles",hour:"numeric",hourCycle:"h23"}).format(new Date()),10); }
-  function currentModeKey(){ return forcedMode || (pacificHour() >= 12 ? "home" : "work"); }
+  var pickedMode = null;
+  function currentModeKey(){ return pickedMode || forcedMode || (pacificHour() >= 12 ? "home" : "work"); }
 
   var BART_FALLBACK = { trains: [ {min:1,len:10,delay:0}, {min:21,len:10,delay:0}, {min:41,len:10,delay:0} ] };
   var WX_FALLBACK = { slots: [ {temp:55,code:3,precip:0}, {temp:62,code:3,precip:0}, {temp:57,code:3,precip:0}, {temp:64,code:2,precip:0} ] };
@@ -417,6 +426,7 @@
     $("trainTitle").textContent=M.trainTitle;
     $("bikeTitle").textContent=M.bikeTitle;
     bartFallback(); renderBikes(M.bikeFallback);
+    Array.prototype.forEach.call(document.querySelectorAll(".toggle button"), function(b){ b.setAttribute("aria-pressed", b.getAttribute("data-mode")===k ? "true" : "false"); });
     return true;
   }
 
@@ -469,6 +479,9 @@
   canvas=$("wxcanvas"); ctx=canvas.getContext("2d"); sizeCanvas();
   applyMode(); renderWeather(WX_FALLBACK.slots); setStatus("live","loading…");
   var rsz; window.addEventListener("resize", function(){ clearTimeout(rsz); rsz=setTimeout(function(){ sizeCanvas(); seed(); }, 200); });
+  Array.prototype.forEach.call(document.querySelectorAll(".toggle button"), function(b){
+    b.addEventListener("click", function(){ pickedMode=b.getAttribute("data-mode"); if(applyMode()) refresh(); });
+  });
   document.addEventListener("visibilitychange", function(){ if(!document.hidden) refresh(); });
   setInterval(function(){ updateStatus(); if(applyMode() && !document.hidden) refresh(); }, 1000);
   setInterval(function(){ if(!document.hidden) refresh(); }, REFRESH_MS);
