@@ -222,6 +222,11 @@
   var BART_LINE = "RED";
   var STATUS_URL = "https://gbfs.lyft.com/gbfs/1.1/bay/en/station_status.json";
   var WX_URL = "https://api.open-meteo.com/v1/forecast?latitude=37.7749,37.8742&longitude=-122.4194,-122.3021&hourly=temperature_2m,weather_code,precipitation_probability&temperature_unit=fahrenheit&timezone=America/Los_Angeles&forecast_days=1";
+  /* NWS hourly forecast (SF + Berkeley gridpoints) is the primary weather source — it catches Bay Area drizzle
+     Open-Meteo misses. Its feed starts at the current hour, so Open-Meteo fills hours that already passed,
+     and stands in entirely if NWS is down. */
+  var NWS_URLS = ["https://api.weather.gov/gridpoints/MTR/85,105/forecast/hourly", "https://api.weather.gov/gridpoints/MTR/90,109/forecast/hourly"];
+  var WX_WINDOWS = [[6,7,8],[15,16,17]];   /* hour starts: 6–9 AM and 3–6 PM; each window shows its worst hour */
   var REFRESH_MS = 45000;
 
   /* Before noon (Pacific) it's San Francisco mode (SF → Berkeley); from noon on, Berkeley mode (Berkeley → SF).
@@ -279,14 +284,27 @@
     snow:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 15h9a4 4 0 0 0 .4-8A5 5 0 0 0 7 5.5 3.8 3.8 0 0 0 7 15z"/><path d="M9 19h.01M12 20.5h.01M15 19h.01"/></svg>',
     storm:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 14h9a4 4 0 0 0 .4-8A5 5 0 0 0 7 4.5 3.8 3.8 0 0 0 7 14z"/><path d="M12 15l-2 3.5h3L11 22"/></svg>'
   };
+  function nwsInfo(text){
+    var t=(text||"").toLowerCase(), slight=/slight chance/.test(t);
+    if(!slight && /thunder/.test(t)) return {sky:"storm", sev:5, label:"Storms"};
+    if(!slight && /snow|sleet|flurr/.test(t)) return {sky:"snow", sev:4, label:"Snow"};
+    if(!slight && /rain|shower|drizzle/.test(t)) return {sky:"rain", sev:4, label: /shower/.test(t)?"Showers":/drizzle/.test(t)?"Drizzle":/light/.test(t)?"Light rain":"Rain"};
+    if(/fog|haze|smoke/.test(t)) return {sky:"fog", sev:3, label:"Fog"};
+    if(/partly/.test(t)) return {sky:"partly", sev:1, label:"Partly cloudy"};
+    if(/mostly (sunny|clear)/.test(t)) return {sky:"clear", sev:0, label:"Mostly clear"};
+    if(/cloudy|overcast/.test(t)) return {sky:"cloudy", sev:2, label: /mostly/.test(t)?"Mostly cloudy":"Overcast"};
+    if(/sunny|clear/.test(t)) return {sky:"clear", sev:0, label:"Clear"};
+    return {sky:"cloudy", sev:2, label:"Cloudy"};
+  }
   var WX_TINT = { clear:"#c6974a", partly:"#c6974a", cloudy:"var(--muted)", fog:"var(--muted)", rain:"#3f5d6b", snow:"#3f5d6b", storm:"#8a6d3a" };
-  var WX_WHEN = ["SF · 7 AM", "SF · 4 PM", "Berkeley · 7 AM", "Berkeley · 4 PM"];
+  var WX_WHEN = ["SF · 6–9 AM", "SF · 3–6 PM", "Berkeley · 6–9 AM", "Berkeley · 3–6 PM"];
 
-  /* slots: SF 7a, SF 4p, Berkeley 7a, Berkeley 4p — sky + rain status take the worst of all four */
+  /* slots: SF morning, SF evening, Berkeley morning, Berkeley evening — sky + rain status take the worst of all four */
   function renderWeather(slots){
     var worst = null;
     slots.forEach(function(s,i){
-      var info = wxInfo(s.code);
+      if(!s){ $("wx"+i).innerHTML='<div class="kick">'+WX_WHEN[i]+'</div><div class="wx-row"><span class="num">–</span></div><div class="sub">No forecast</div>'; return; }
+      var info = s.info || wxInfo(s.code);
       if(!worst || info.sev > worst.sev) worst = info;
       var precip = (s.precip!=null && s.precip>=20) ? " · "+s.precip+"% rain" : "";
       $("wx"+i).innerHTML =
@@ -299,19 +317,55 @@
     cRainy = !!(worst && (worst.sky==="rain"||worst.sky==="storm"));
     computeCommute();
   }
+  function todayPT(){ return new Intl.DateTimeFormat("en-CA",{timeZone:"America/Los_Angeles"}).format(new Date()); }
+  function fetchJson(url, ms){
+    var ctl = window.AbortController ? new AbortController() : null;
+    var timer = ctl ? setTimeout(function(){ ctl.abort(); }, ms) : null;
+    return fetch(url,{cache:"no-store", signal: ctl ? ctl.signal : undefined})
+      .then(function(r){ if(timer)clearTimeout(timer); if(!r.ok)throw new Error(r.status); return r.json(); },
+            function(e){ if(timer)clearTimeout(timer); throw e; });
+  }
+  /* each source → per-location map of today's hour → {temp, info, pop}; a failed source yields null */
   function loadWeather(){
-    return fetch(WX_URL,{cache:"no-store"}).then(function(r){ if(!r.ok)throw new Error(r.status); return r.json(); })
-      .then(function(j){
-        var slots=[];
-        (Array.isArray(j)?j:[j]).forEach(function(loc){
-          var h=loc.hourly, t=h.time;
-          ["07:00","16:00"].forEach(function(hh){
-            for(var i=0;i<t.length;i++){ if(t[i].slice(11,16)===hh){ slots.push({temp:h.temperature_2m[i], code:h.weather_code[i], precip:h.precipitation_probability?h.precipitation_probability[i]:null}); break; } }
-          });
-        });
-        if(slots.length<4) throw new Error("hours");
-        renderWeather(slots); return true;
+    var day = todayPT();
+    var om = fetchJson(WX_URL, 10000).then(function(j){
+      return (Array.isArray(j)?j:[j]).map(function(loc){
+        var m={}, h=loc.hourly;
+        h.time.forEach(function(t,i){ if(t.slice(0,10)===day) m[+t.slice(11,13)]={temp:h.temperature_2m[i], info:wxInfo(h.weather_code[i]), pop:h.precipitation_probability?h.precipitation_probability[i]:null}; });
+        return m;
       });
+    }).catch(function(){ return null; });
+    var nws = NWS_URLS.map(function(u){
+      return fetchJson(u, 8000).then(function(j){
+        var m={};
+        j.properties.periods.forEach(function(p){
+          if(p.startTime.slice(0,10)!==day) return;
+          var f = p.temperatureUnit==="C" ? p.temperature*9/5+32 : p.temperature;
+          m[+p.startTime.slice(11,13)]={temp:f, info:nwsInfo(p.shortForecast), pop:p.probabilityOfPrecipitation?p.probabilityOfPrecipitation.value:null};
+        });
+        return m;
+      }).catch(function(){ return null; });
+    });
+    return Promise.all([om].concat(nws)).then(function(res){
+      if(!res[0] && !res[1] && !res[2]) throw new Error("weather");
+      var slots=[];
+      [0,1].forEach(function(li){
+        var hours={}, o=(res[0]||[])[li]||{}, n=res[1+li]||{};
+        Object.keys(o).forEach(function(k){ hours[k]=o[k]; });
+        Object.keys(n).forEach(function(k){ hours[k]=n[k]; });   /* NWS beats Open-Meteo hour by hour */
+        WX_WINDOWS.forEach(function(win){
+          var worst=null, pop=null, sum=0, cnt=0;
+          win.forEach(function(hr){
+            var x=hours[hr]; if(!x) return;
+            if(!worst || x.info.sev>worst.sev) worst=x.info;
+            if(x.pop!=null) pop=Math.max(pop||0, x.pop);
+            sum+=x.temp; cnt++;
+          });
+          slots.push(cnt ? {temp:sum/cnt, info:worst, precip:pop} : null);
+        });
+      });
+      renderWeather(slots); return true;
+    });
   }
 
   /* ---- sky motion ---- */
